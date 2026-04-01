@@ -1,0 +1,119 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "SQL Server: Init DB (schema + seed)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"scripts\\init-sqlserver-db.ps1"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Run Fullstack (SQL Server)",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"dev:full:sqlserver"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Init DB + Run Fullstack (SQL Server)",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"SQL Server: Init DB (schema + seed)",
+				"Run Fullstack (SQL Server)"
+			],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Backend",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"dev:backend"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Frontend",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"dev:frontend"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Ollama: Pull llama3.2:3b",
+			"type": "shell",
+			"command": "ollama",
+			"args": [
+				"pull",
+				"llama3.2:3b"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Ollama: Pull qwen2.5:1.5b (faster)",
+			"type": "shell",
+			"command": "ollama",
+			"args": [
+				"pull",
+				"qwen2.5:1.5b"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Ollama: Serve",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Start-Process -FilePath ollama -ArgumentList 'serve' -WindowStyle Hidden"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Run Fullstack",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"dev:full"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Fullstack (with Ollama)",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"Ollama: Serve",
+				"Run Fullstack"
+			],
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

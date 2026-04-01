@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Assistant">
+  <!-- Simple original mascot-style icon (not a copy of any brand mark) -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B4F91"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer bubble circle -->
+  <circle cx="64" cy="64" r="56" fill="url(#g)"/>
+
+  <!-- Head/face panel -->
+  <rect x="28" y="36" width="72" height="56" rx="20" fill="#FFFFFF" opacity="0.98"/>
+
+  <!-- Headset band -->
+  <path d="M36 60c0-18 12-30 28-30s28 12 28 30" fill="none" stroke="#2563EB" stroke-width="10" stroke-linecap="round" opacity="0.95"/>
+
+  <!-- Ear pads -->
+  <rect x="20" y="58" width="14" height="34" rx="7" fill="#2563EB"/>
+  <rect x="94" y="58" width="14" height="34" rx="7" fill="#2563EB"/>
+
+  <!-- Face: eyes -->
+  <path d="M48 62c4 6 10 6 14 0" fill="none" stroke="#1B4F91" stroke-width="6" stroke-linecap="round"/>
+  <path d="M66 62c4 6 10 6 14 0" fill="none" stroke="#1B4F91" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Face: smile -->
+  <path d="M52 74c6 8 18 8 24 0" fill="none" stroke="#1B4F91" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Small chat tail (subtle) -->
+  <path d="M40 94l-10 12c-1.5 1.8 0.2 4.5 2.6 4.0l18-4.2" fill="#FFFFFF" opacity="0.92"/>
+</svg>

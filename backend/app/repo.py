@@ -1,0 +1,19 @@
+from __future__ import annotations
+
+from typing import Any, Callable, Iterable, List, Optional, Protocol, TypeVar
+
+T = TypeVar("T")
+
+
+class Repo(Protocol[T]):
+    def list(self) -> List[T]: ...
+
+    def get(self, item_id: str) -> Optional[T]: ...
+
+    def create(self, item_id: Optional[str], builder: Callable[[str], T]) -> T: ...
+
+    def update(self, item_id: str, updater: Callable[[Any], T]) -> T: ...
+
+    def delete(self, item_id: str) -> None: ...
+
+    def seed(self, items: Iterable[T], get_id: Callable[[T], str]) -> None: ...

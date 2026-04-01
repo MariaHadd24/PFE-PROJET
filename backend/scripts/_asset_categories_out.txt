@@ -1,0 +1,31 @@
+﻿backend\.venv\Scripts\python.exe : Traceback (most recent call last):
+Au caractère Ligne:1 : 1
++ backend\.venv\Scripts\python.exe backend\scripts\inspect_asset_catego ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last) 
+   ::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Users\user\Desktop\PFE 
+PROJET\backend\scripts\inspect_asset_categories.py", line 30, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "C:\Users\user\Desktop\PFE 
+PROJET\backend\scripts\inspect_asset_categories.py", line 14, in main
+    cn = connect()
+  File "C:\Users\user\Desktop\PFE PROJET\backend\app\sqlserver.py", line 125, 
+in connect
+    raise last_error  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\PFE PROJET\backend\app\sqlserver.py", line 120, 
+in connect
+    return pyodbc.connect(build_connection_string(server_override=server))
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pyodbc.OperationalError: ('08001', '[08001] [Microsoft][ODBC Driver 18 for SQL 
+Server]Named Pipes Provider: Could not open a connection to SQL Server [2].  
+(2) (SQLDriverConnect); [08001] [Microsoft][ODBC Driver 18 for SQL 
+Server]Login timeout expired (0); [08001] [Microsoft][ODBC Driver 18 for SQL 
+Server]A network-related or instance-specific error has occurred while 
+establishing a connection to localhost. Server is not found or not accessible. 
+Check if instance name is correct and if SQL Server is configured to allow 
+remote connections. For more information see SQL Server Books Online. (2)')

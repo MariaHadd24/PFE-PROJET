@@ -1,0 +1,9 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* Prevent duplicate "eye" icons on Windows browsers (Edge/IE) when we render our own password visibility toggle. */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+	display: none;
+}

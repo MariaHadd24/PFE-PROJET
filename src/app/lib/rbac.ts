@@ -18,6 +18,7 @@ export type AppPage =
   | 'dashboard'
   | 'stock-inventory'
   | 'printer-incidents'
+  | 'printer-toner'
   | 'assignments'
   | 'maintenance'
   | 'orders'
@@ -34,6 +35,7 @@ export function canAccessPage(role: UserRole, page: AppPage): boolean {
     case 'dashboard':
     case 'stock-inventory':
     case 'printer-incidents':
+    case 'printer-toner':
     case 'licences':
       return true;
 

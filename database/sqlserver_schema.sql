@@ -307,3 +307,63 @@ CREATE TABLE dbo.vendors (
 );
 
 CREATE INDEX IX_vendors_status ON dbo.vendors(status);
+
+/* =========================
+   Printer Toner / Consumables
+   ========================= */
+
+CREATE TABLE dbo.printer_toner_incidents (
+  id                NVARCHAR(64)  NOT NULL,
+  site              NVARCHAR(200) NULL,
+  printerName       NVARCHAR(200) NULL,
+  demandType        NVARCHAR(200) NULL,
+  ticketNumber      NVARCHAR(200) NULL,
+  problemNature     NVARCHAR(400) NULL,
+  printerSerial     NVARCHAR(200) NULL,
+  printerModel      NVARCHAR(200) NULL,
+  claimDate         DATETIME2(0)  NULL,
+  interventionDate  DATETIME2(0)  NULL,
+  duration          NVARCHAR(100) NULL,
+  status            NVARCHAR(20)  NOT NULL CONSTRAINT DF_printer_toner_incidents_status DEFAULT ('NON_INTERVENUE'),
+  raw               NVARCHAR(MAX) NULL,
+  rawHeaders        NVARCHAR(MAX) NULL,
+  CONSTRAINT PK_printer_toner_incidents PRIMARY KEY (id),
+  CONSTRAINT CK_printer_toner_incidents_status CHECK (status IN ('NON_INTERVENUE','INTERVENUE')),
+  CONSTRAINT CK_printer_toner_incidents_raw_json CHECK (raw IS NULL OR ISJSON(raw) = 1),
+  CONSTRAINT CK_printer_toner_incidents_rawHeaders_json CHECK (rawHeaders IS NULL OR ISJSON(rawHeaders) = 1)
+);
+
+CREATE INDEX IX_printer_toner_incidents_claimDate ON dbo.printer_toner_incidents(claimDate);
+CREATE INDEX IX_printer_toner_incidents_ticketNumber ON dbo.printer_toner_incidents(ticketNumber);
+
+CREATE TABLE dbo.printer_toner_entries (
+  id          NVARCHAR(64)  NOT NULL,
+  [date]      DATE          NULL,
+  article     NVARCHAR(400) NULL,
+  articleCode NVARCHAR(200) NULL,
+  quantity    INT           NOT NULL,
+  CONSTRAINT PK_printer_toner_entries PRIMARY KEY (id)
+);
+
+CREATE INDEX IX_printer_toner_entries_date ON dbo.printer_toner_entries([date]);
+
+CREATE TABLE dbo.printer_toner_exits (
+  id          NVARCHAR(64)  NOT NULL,
+  [date]      DATE          NULL,
+  article     NVARCHAR(400) NULL,
+  articleCode NVARCHAR(200) NULL,
+  quantity    INT           NOT NULL,
+  CONSTRAINT PK_printer_toner_exits PRIMARY KEY (id)
+);
+
+CREATE INDEX IX_printer_toner_exits_date ON dbo.printer_toner_exits([date]);
+
+CREATE TABLE dbo.printer_toner_min_qty (
+  id      NVARCHAR(64)  NOT NULL,
+  ref     NVARCHAR(200) NOT NULL,
+  color   NVARCHAR(20)  NOT NULL,
+  minQty  INT           NOT NULL,
+  CONSTRAINT PK_printer_toner_min_qty PRIMARY KEY (id)
+);
+
+CREATE INDEX IX_printer_toner_min_qty_ref_color ON dbo.printer_toner_min_qty(ref, color);

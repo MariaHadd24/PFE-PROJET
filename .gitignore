@@ -1,1 +1,23 @@
 node_modules
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Vite/React build output
+dist/
+
+# OS
+.DS_Store
+Thumbs.db

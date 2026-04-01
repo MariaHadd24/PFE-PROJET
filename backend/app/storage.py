@@ -66,6 +66,12 @@ class Database:
     audit_logs: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="log"))
     vendors: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="ven"))
 
+    # Printer toner / consumables
+    printer_toner_incidents: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="pti"))
+    printer_toner_entries: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="pte"))
+    printer_toner_exits: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="ptx"))
+    printer_toner_min_qty: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="ptm"))
+
 def _build_sqlserver_db() -> Database:
     from app import models
     from app.sqlrepos import (
@@ -133,6 +139,27 @@ def _build_sqlserver_db() -> Database:
             table="vendors",
             model=models.Vendor,
             bool_fields=("compliant",),
+        ),
+
+        printer_toner_incidents=SQLServerRepo(
+            table="printer_toner_incidents",
+            model=models.PrinterTonerIncident,
+            datetime_fields=("claimDate", "interventionDate"),
+            json_fields=("raw", "rawHeaders"),
+        ),
+        printer_toner_entries=SQLServerRepo(
+            table="printer_toner_entries",
+            model=models.PrinterTonerEntry,
+            date_fields=("date",),
+        ),
+        printer_toner_exits=SQLServerRepo(
+            table="printer_toner_exits",
+            model=models.PrinterTonerExit,
+            date_fields=("date",),
+        ),
+        printer_toner_min_qty=SQLServerRepo(
+            table="printer_toner_min_qty",
+            model=models.PrinterTonerMinQty,
         ),
     )
 

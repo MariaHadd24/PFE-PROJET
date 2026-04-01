@@ -27,7 +27,7 @@ def generate_confirmation():
     return {"ok": True, "file": filename}
 import os
 import json
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Literal, Optional
 import re
 import secrets
@@ -711,6 +711,130 @@ register_crud_routes(
     create_model=models.SupplierCreate,
     update_model=models.SupplierUpdate,
     prefix="suppliers",
+)
+
+
+# Printer toner / consumables
+register_crud_routes(
+    router=router,
+    repo=DB.printer_toner_incidents,
+    model=models.PrinterTonerIncident,
+    create_model=models.PrinterTonerIncidentCreate,
+    update_model=models.PrinterTonerIncidentUpdate,
+    prefix="printer-toner-incidents",
+)
+
+
+def _norm_header(s: str) -> str:
+    s = str(s or "").strip().lower()
+    s = re.sub(r"[\s\-/\.'’]+", "_", s)
+    s = re.sub(r"[^a-z0-9_]+", "", s)
+    s = re.sub(r"_+", "_", s)
+    return s.strip("_")
+
+
+def _parse_iso_dt(value: Any) -> Optional[datetime]:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        # Keep midnight when only a date is known.
+        return datetime(value.year, value.month, value.day)
+    s = str(value).strip()
+    if not s:
+        return None
+    s = s.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(s)
+    except Exception:
+        try:
+            # fallback: 'YYYY-MM-DD HH:MM'
+            return datetime.fromisoformat(s.replace(" ", "T"))
+        except Exception:
+            # last resort: date-only
+            try:
+                d = date.fromisoformat(s[:10])
+                return datetime(d.year, d.month, d.day)
+            except Exception:
+                return None
+
+
+@router.post("/printer-toner-incidents/{item_id}/mark-intervened", response_model=models.PrinterTonerIncident)
+def mark_printer_toner_incident_intervened(item_id: str):
+    current = DB.printer_toner_incidents.get(item_id)
+    if current is None:
+        raise HTTPException(status_code=404, detail="incident_not_found")
+
+    now_iso = datetime.now().replace(second=0, microsecond=0).isoformat()
+
+    def updater(existing: models.PrinterTonerIncident) -> models.PrinterTonerIncident:
+        d = existing.model_dump()
+        d["status"] = "INTERVENUE"
+
+        if not d.get("interventionDate"):
+            d["interventionDate"] = now_iso
+
+        claim = _parse_iso_dt(d.get("claimDate"))
+        inter = _parse_iso_dt(d.get("interventionDate"))
+        if claim and inter:
+            delta_sec = (inter - claim).total_seconds()
+            if delta_sec >= 0:
+                hours = delta_sec / 3600.0
+                d["duration"] = (f"{hours:.2f}").rstrip("0").rstrip(".")
+
+        raw = d.get("raw")
+        if raw is not None and isinstance(raw, dict):
+            # Best-effort: update any matching header keys so the dynamic UI table stays accurate.
+            for k in list(raw.keys()):
+                nk = _norm_header(k)
+                if nk in {
+                    "date_dintervention_cbi",
+                    "date_d_intervention_cbi",
+                    "date_dintervention",
+                    "date_d_intervention",
+                    "date_intervention",
+                }:
+                    raw[k] = d.get("interventionDate")
+                if nk in {
+                    "duree_de_traitement_ticket",
+                    "duree_de_traitement_ticket_",
+                    "duree_traitement_ticket",
+                    "duree_de_traitement",
+                    "duree",
+                }:
+                    raw[k] = d.get("duration")
+            d["raw"] = raw
+
+        return models.PrinterTonerIncident(**d)
+
+    return DB.printer_toner_incidents.update(item_id, updater)
+
+register_crud_routes(
+    router=router,
+    repo=DB.printer_toner_entries,
+    model=models.PrinterTonerEntry,
+    create_model=models.PrinterTonerEntryCreate,
+    update_model=models.PrinterTonerEntryUpdate,
+    prefix="printer-toner-entries",
+)
+
+register_crud_routes(
+    router=router,
+    repo=DB.printer_toner_exits,
+    model=models.PrinterTonerExit,
+    create_model=models.PrinterTonerExitCreate,
+    update_model=models.PrinterTonerExitUpdate,
+    prefix="printer-toner-exits",
+)
+
+register_crud_routes(
+    router=router,
+    repo=DB.printer_toner_min_qty,
+    model=models.PrinterTonerMinQty,
+    create_model=models.PrinterTonerMinQtyCreate,
+    update_model=models.PrinterTonerMinQtyUpdate,
+    prefix="printer-toner-min-qty",
 )
 
 

@@ -290,3 +290,43 @@ export interface Vendor {
   rating: number;
   compliant: boolean;
 }
+
+export interface PrinterTonerIncident {
+  id: string;
+  site?: string | null;
+  printerName?: string | null;
+  demandType?: string | null;
+  ticketNumber?: string | null;
+  problemNature?: string | null;
+  printerSerial?: string | null;
+  printerModel?: string | null;
+  claimDate?: string | null;
+  interventionDate?: string | null;
+  duration?: string | null;
+  status?: 'NON_INTERVENUE' | 'INTERVENUE' | null;
+  raw?: Record<string, unknown> | null;
+  rawHeaders?: string[] | null;
+}
+
+export interface PrinterTonerEntry {
+  id: string;
+  date?: string | null;
+  article?: string | null;
+  articleCode?: string | null;
+  quantity: number;
+}
+
+export interface PrinterTonerExit {
+  id: string;
+  date?: string | null;
+  article?: string | null;
+  articleCode?: string | null;
+  quantity: number;
+}
+
+export interface PrinterTonerMinQty {
+  id: string;
+  ref: string;
+  color: string;
+  minQty: number;
+}

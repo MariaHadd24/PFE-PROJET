@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+import unicodedata
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from app import models
 from app.auth import hash_password
@@ -9,6 +14,326 @@ from app.storage import DB
 
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_key(name: str) -> str:
+    s = str(name or "").strip()
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    s = s.lower()
+    s = re.sub(r"[\s\-/\.'’]+", "_", s)
+    s = re.sub(r"[^a-z0-9_]+", "", s)
+    s = re.sub(r"_+", "_", s)
+    return s.strip("_")
+
+
+def _to_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    return str(value).strip()
+
+
+def _to_int(value: Any) -> int:
+    if value is None:
+        return 0
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, (int,)):
+        return int(value)
+    if isinstance(value, float):
+        return int(round(value))
+    s = _to_text(value).replace(",", ".")
+    try:
+        f = float(s)
+        return int(round(f))
+    except Exception:
+        return 0
+
+
+_DATE_DMY_RE = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})$")
+
+
+def _to_date_iso(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+
+    s = _to_text(value)
+    if not s:
+        return None
+
+    # ISO date or datetime
+    try:
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s):
+            return date.fromisoformat(s).isoformat()
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?", s):
+            return datetime.fromisoformat(s.replace(" ", "T")).date().isoformat()
+    except Exception:
+        pass
+
+    # dd/MM/yyyy
+    m = _DATE_DMY_RE.match(s)
+    if m:
+        dd, mm, yyyy = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        try:
+            return date(yyyy, mm, dd).isoformat()
+        except ValueError:
+            return None
+
+    return None
+
+
+def _first_present(rec: Dict[str, Any], *keys: str) -> Any:
+    for k in keys:
+        if k in rec and _to_text(rec.get(k)):
+            return rec.get(k)
+    norm = {_normalize_key(k): v for k, v in rec.items()}
+    for k in keys:
+        nk = _normalize_key(k)
+        if nk in norm and _to_text(norm.get(nk)):
+            return norm.get(nk)
+    return None
+
+
+def _gen_id(prefix: str, *parts: Any, max_len: int = 64) -> str:
+    raw = "_".join(_to_text(p) for p in parts if _to_text(p))
+    raw = _normalize_key(raw) or "x"
+    out = f"{prefix}-{raw}"
+    if len(out) <= max_len:
+        return out
+    # keep deterministic suffix
+    return out[: max_len - 9] + "-" + out[-8:]
+
+
+def _find_header_row(ws, needle: str, *, max_rows: int = 60) -> Optional[Tuple[int, List[str]]]:
+    n = needle.lower().strip()
+    for i, row in enumerate(ws.iter_rows(min_row=1, max_row=max_rows, values_only=True), start=1):
+        for v in row:
+            if v is None:
+                continue
+            if n in str(v).lower():
+                headers = [str(x).strip() if x is not None else "" for x in row]
+                return i, headers
+    return None
+
+
+def _iter_sheet_records(ws, header_row: int, headers: List[str]) -> Iterable[Dict[str, Any]]:
+    col_map = {idx: h for idx, h in enumerate(headers) if str(h or "").strip()}
+    empty_streak = 0
+    for row in ws.iter_rows(min_row=header_row + 1, values_only=True):
+        if all(v is None or str(v).strip() == "" for v in row):
+            empty_streak += 1
+            if empty_streak >= 50:
+                break
+            continue
+        empty_streak = 0
+
+        rec: Dict[str, Any] = {}
+        for idx, v in enumerate(row):
+            h = col_map.get(idx)
+            if not h:
+                continue
+            rec[h] = v
+        if all(v is None or str(v).strip() == "" for v in rec.values()):
+            continue
+        yield rec
+
+
+def seed_printer_toner_from_workbook() -> None:
+    # Best-effort: only attempt when repos/tables exist.
+    # NOTE: We no longer bail out when data exists, because we may need to
+    # backfill new columns (e.g. incidents.raw/rawHeaders).
+    try:
+        existing_incidents = DB.printer_toner_incidents.list()
+        existing_entries = DB.printer_toner_entries.list()
+        existing_exits = DB.printer_toner_exits.list()
+        existing_min_qty = DB.printer_toner_min_qty.list()
+    except Exception as e:
+        logger.warning("Printer toner seed skipped (storage unavailable): %s", e)
+        return
+
+    repo_root = Path(__file__).resolve().parents[2]
+    xlsm_path = repo_root / "public" / "suivie-incidents-imprimantes.xlsm"
+    if not xlsm_path.exists():
+        logger.info("Printer toner seed skipped (workbook missing): %s", xlsm_path)
+        return
+
+    wb = None
+    try:
+        from openpyxl import load_workbook
+
+        wb = load_workbook(xlsm_path, data_only=True, keep_vba=True)
+
+        # Incidents
+        try:
+            ws = wb["Incidents"]
+            header = _find_header_row(ws, "Printer Name")
+            if header is not None:
+                header_row, headers = header
+                raw_headers = [str(h).strip() for h in headers if str(h or "").strip()]
+
+                for rec in _iter_sheet_records(ws, header_row, headers):
+                    raw: Dict[str, Any] = {}
+                    for k, v in rec.items():
+                        txt = _to_text(v)
+                        raw[str(k).strip()] = None if txt == "" else txt
+
+                    site = _to_text(_first_present(rec, "Site"))
+                    printer_name = _to_text(_first_present(rec, "Printer Name"))
+                    demand_type = _to_text(_first_present(rec, "Type of demand"))
+                    ticket = _to_text(_first_present(rec, "N° Ticket CBI", "N° Ticket", "Ticket"))
+                    nature = _to_text(_first_present(rec, "Nature du Probleme", "Nature du Problème"))
+                    serial = _to_text(_first_present(rec, "N° de Série Imprimante", "N° de Série"))
+                    model = _to_text(_first_present(rec, "Model Imprimante", "Modèle Imprimante"))
+                    claim_date = _to_date_iso(_first_present(rec, "Date Reclamation", "Date Réclamation"))
+                    interv_date = _to_date_iso(_first_present(rec, "Date D'intervention CBI", "Date d'intervention CBI"))
+                    duration = _to_text(_first_present(rec, "Duree de traitement ticket", "Duree de traitement ticket "))
+
+                    status = "INTERVENUE" if interv_date else "NON_INTERVENUE"
+
+                    if not (site or printer_name or ticket or nature):
+                        continue
+
+                    item_id = _gen_id("pti", site, printer_name, ticket, claim_date, nature)
+                    item = models.PrinterTonerIncident(
+                        id=item_id,
+                        site=site or None,
+                        printerName=printer_name or None,
+                        demandType=demand_type or None,
+                        ticketNumber=ticket or None,
+                        problemNature=nature or None,
+                        printerSerial=serial or None,
+                        printerModel=model or None,
+                        claimDate=claim_date,
+                        interventionDate=interv_date,
+                        duration=duration or None,
+                        status=status,
+                        raw=raw or None,
+                        rawHeaders=raw_headers or None,
+                    )
+                    try:
+                        if len(existing_incidents) == 0:
+                            DB.printer_toner_incidents.create(item.id, lambda _id, it=item: it)
+                        else:
+                            def updater(current: models.PrinterTonerIncident, it=item):
+                                d = current.model_dump()
+                                d.update(it.model_dump(exclude_none=True))
+                                return models.PrinterTonerIncident(**d)
+
+                            try:
+                                DB.printer_toner_incidents.update(item.id, updater)
+                            except KeyError:
+                                DB.printer_toner_incidents.create(item.id, lambda _id, it=item: it)
+                    except ValueError:
+                        continue
+        except Exception as e:
+            logger.warning("Printer toner incidents seed skipped: %s", e)
+
+        # Entrées
+        try:
+            if len(existing_entries) == 0:
+                ws = wb["Entrées"]
+                header = _find_header_row(ws, "Date d'entrée")
+                if header is not None:
+                    header_row, headers = header
+                    for rec in _iter_sheet_records(ws, header_row, headers):
+                        d = _to_date_iso(_first_present(rec, "Date d'entrée", "Date d entree"))
+                        article = _to_text(_first_present(rec, "Article"))
+                        code = _to_text(_first_present(rec, "Code Artice", "Code Article"))
+                        qty = _to_int(_first_present(rec, "Quantité", "Quantite"))
+                        if not (article or qty):
+                            continue
+                        item_id = _gen_id("pte", d, article, code, qty)
+                        item = models.PrinterTonerEntry(
+                            id=item_id,
+                            date=d,
+                            article=article or None,
+                            articleCode=code or None,
+                            quantity=int(qty or 0),
+                        )
+                        try:
+                            DB.printer_toner_entries.create(item.id, lambda _id, it=item: it)
+                        except ValueError:
+                            continue
+        except Exception as e:
+            logger.warning("Printer toner entries seed skipped: %s", e)
+
+        # Sorties
+        try:
+            if len(existing_exits) == 0:
+                ws = wb["Sorties"]
+                header = _find_header_row(ws, "Date de sortie")
+                if header is not None:
+                    header_row, headers = header
+                    for rec in _iter_sheet_records(ws, header_row, headers):
+                        d = _to_date_iso(_first_present(rec, "Date de sortie"))
+                        article = _to_text(_first_present(rec, "Nom Article", "Article"))
+                        code = _to_text(_first_present(rec, "Code Artice", "Code Article"))
+                        qty = _to_int(_first_present(rec, "Quantité", "Quantite"))
+                        if not (article or qty):
+                            continue
+                        item_id = _gen_id("ptx", d, article, code, qty)
+                        item = models.PrinterTonerExit(
+                            id=item_id,
+                            date=d,
+                            article=article or None,
+                            articleCode=code or None,
+                            quantity=int(qty or 0),
+                        )
+                        try:
+                            DB.printer_toner_exits.create(item.id, lambda _id, it=item: it)
+                        except ValueError:
+                            continue
+        except Exception as e:
+            logger.warning("Printer toner exits seed skipped: %s", e)
+
+        # Min qty (AS3)
+        try:
+            if len(existing_min_qty) == 0:
+                if "AS3" in wb.sheetnames:
+                    ws = wb["AS3"]
+                    header = _find_header_row(ws, "Référence") or _find_header_row(ws, "Reference")
+                    if header is not None:
+                        header_row, headers = header
+                        current_ref = ""
+                        for rec in _iter_sheet_records(ws, header_row, headers):
+                            ref = _to_text(_first_present(rec, "Référence ", "Référence", "Reference"))
+                            color = _to_text(_first_present(rec, "Couleur", "Color")).upper()
+                            qty = _to_int(_first_present(rec, "Nombre de toner ", "Nombre de toner", "Nombre de toner  "))
+
+                            if ref:
+                                current_ref = ref
+                            used_ref = ref or current_ref
+                            if not (used_ref and color and qty):
+                                continue
+
+                            item_id = _gen_id("ptm", used_ref, color)
+                            item = models.PrinterTonerMinQty(
+                                id=item_id,
+                                ref=used_ref,
+                                color=color,
+                                minQty=int(qty),
+                            )
+                            try:
+                                DB.printer_toner_min_qty.create(item.id, lambda _id, it=item: it)
+                            except ValueError:
+                                continue
+        except Exception as e:
+            logger.warning("Printer toner min qty seed skipped: %s", e)
+    except Exception as e:
+        logger.warning("Printer toner seed skipped (cannot read workbook): %s", e)
+        return
+    finally:
+        try:
+            if wb is not None:
+                wb.close()
+        except Exception:
+            pass
 
 
 def sync_asset_statuses_from_assignments() -> None:
@@ -659,3 +984,9 @@ def seed_data() -> None:
         ],
         get_id=lambda l: l.id,
     )
+
+    # Seed printer toner/consumables data from the provided workbook (if any).
+    try:
+        seed_printer_toner_from_workbook()
+    except Exception as e:
+        logger.warning("Printer toner seed failed: %s", e)

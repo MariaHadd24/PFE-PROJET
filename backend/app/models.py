@@ -15,6 +15,7 @@ TicketStatus = Literal["Open", "InProgress", "Done", "Closed"]
 UserRole = Literal["Admin", "Technician", "Manager", "Reader"]
 AuditLogResult = Literal["Success", "Failure", "Warning"]
 VendorStatus = Literal["PREFERRED", "APPROVED", "UNDER REVIEW"]
+IncidentStatus = Literal["NON_INTERVENUE", "INTERVENUE"]
 
 
 class Department(BaseModel):
@@ -732,3 +733,119 @@ class KPIData(BaseModel):
     inRepair: int
     retired: int
     totalValue: float
+
+
+class PrinterTonerIncident(BaseModel):
+    id: str
+    site: Optional[str] = None
+    printerName: Optional[str] = None
+    demandType: Optional[str] = None
+    ticketNumber: Optional[str] = None
+    problemNature: Optional[str] = None
+    printerSerial: Optional[str] = None
+    printerModel: Optional[str] = None
+    claimDate: Optional[str] = None
+    interventionDate: Optional[str] = None
+    duration: Optional[str] = None
+    status: IncidentStatus = "NON_INTERVENUE"
+    raw: Optional[Dict[str, Any]] = None
+    rawHeaders: Optional[List[str]] = None
+
+
+class PrinterTonerIncidentCreate(BaseModel):
+    id: Optional[str] = None
+    site: Optional[str] = None
+    printerName: Optional[str] = None
+    demandType: Optional[str] = None
+    ticketNumber: Optional[str] = None
+    problemNature: Optional[str] = None
+    printerSerial: Optional[str] = None
+    printerModel: Optional[str] = None
+    claimDate: Optional[str] = None
+    interventionDate: Optional[str] = None
+    duration: Optional[str] = None
+    status: IncidentStatus = "NON_INTERVENUE"
+    raw: Optional[Dict[str, Any]] = None
+    rawHeaders: Optional[List[str]] = None
+
+
+class PrinterTonerIncidentUpdate(BaseModel):
+    site: Optional[str] = None
+    printerName: Optional[str] = None
+    demandType: Optional[str] = None
+    ticketNumber: Optional[str] = None
+    problemNature: Optional[str] = None
+    printerSerial: Optional[str] = None
+    printerModel: Optional[str] = None
+    claimDate: Optional[str] = None
+    interventionDate: Optional[str] = None
+    duration: Optional[str] = None
+    status: Optional[IncidentStatus] = None
+    raw: Optional[Dict[str, Any]] = None
+    rawHeaders: Optional[List[str]] = None
+
+
+class PrinterTonerEntry(BaseModel):
+    id: str
+    date: Optional[str] = None
+    article: Optional[str] = None
+    articleCode: Optional[str] = None
+    quantity: int = 0
+
+
+class PrinterTonerEntryCreate(BaseModel):
+    id: Optional[str] = None
+    date: Optional[str] = None
+    article: Optional[str] = None
+    articleCode: Optional[str] = None
+    quantity: int = 0
+
+
+class PrinterTonerEntryUpdate(BaseModel):
+    date: Optional[str] = None
+    article: Optional[str] = None
+    articleCode: Optional[str] = None
+    quantity: Optional[int] = None
+
+
+class PrinterTonerExit(BaseModel):
+    id: str
+    date: Optional[str] = None
+    article: Optional[str] = None
+    articleCode: Optional[str] = None
+    quantity: int = 0
+
+
+class PrinterTonerExitCreate(BaseModel):
+    id: Optional[str] = None
+    date: Optional[str] = None
+    article: Optional[str] = None
+    articleCode: Optional[str] = None
+    quantity: int = 0
+
+
+class PrinterTonerExitUpdate(BaseModel):
+    date: Optional[str] = None
+    article: Optional[str] = None
+    articleCode: Optional[str] = None
+    quantity: Optional[int] = None
+
+
+class PrinterTonerMinQty(BaseModel):
+    id: str
+    ref: str
+    color: str
+    minQty: int
+
+
+class PrinterTonerMinQtyCreate(BaseModel):
+    id: Optional[str] = None
+    ref: str
+    color: str
+    minQty: int
+
+
+class PrinterTonerMinQtyUpdate(BaseModel):
+    ref: Optional[str] = None
+    color: Optional[str] = None
+    minQty: Optional[int] = None

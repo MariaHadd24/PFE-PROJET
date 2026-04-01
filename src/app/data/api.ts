@@ -9,6 +9,10 @@ import type {
   KPIData,
   Licence,
   MaintenanceTicket,
+  PrinterTonerEntry,
+  PrinterTonerExit,
+  PrinterTonerIncident,
+  PrinterTonerMinQty,
   Monitor,
   PurchaseOrder,
   PurchaseRequest,
@@ -118,6 +122,17 @@ export type ChatAction = { label: string; link: string };
 export type ChatResponse = { text: string; actions?: ChatAction[]; model?: string | null };
 export const chatAssistant = (payload: { message: string; history?: ChatHistoryItem[] }) =>
   apiPost<ChatResponse>('/chat', payload);
+
+export const listPrinterTonerIncidents = () => apiGet<PrinterTonerIncident[]>('/printer-toner-incidents?limit=10000');
+export const listPrinterTonerEntries = () => apiGet<PrinterTonerEntry[]>('/printer-toner-entries?limit=10000');
+export const listPrinterTonerExits = () => apiGet<PrinterTonerExit[]>('/printer-toner-exits?limit=10000');
+export const listPrinterTonerMinQty = () => apiGet<PrinterTonerMinQty[]>('/printer-toner-min-qty?limit=10000');
+
+export const createPrinterTonerEntry = (payload: Create<PrinterTonerEntry>) =>
+  apiPost<PrinterTonerEntry>('/printer-toner-entries', payload);
+
+export const createPrinterTonerExit = (payload: Create<PrinterTonerExit>) =>
+  apiPost<PrinterTonerExit>('/printer-toner-exits', payload);
 
 export async function computeKpisFromAssets(assets: Asset[]): Promise<KPIData> {
   const totalAssets = assets.length;

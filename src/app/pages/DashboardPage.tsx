@@ -45,7 +45,15 @@ type CategoryCard = {
   gradient: string;
 };
 
-const PIE_COLORS = ['#3155FF', '#00B58E', '#F2C300', '#FF1F9F', '#FF2857', '#5B6B81', '#22C55E'];
+const PIE_COLORS = [
+  'var(--chart-blue-1)',
+  'var(--chart-2)',
+  'var(--chart-4)',
+  'var(--chart-1)',
+  'var(--destructive)',
+  'var(--chart-blue-5)',
+  'var(--chart-3)',
+];
 
 function norm(value: unknown): string {
   return String(value ?? '').trim().toLowerCase();
@@ -311,7 +319,7 @@ function DashboardCategoryCard({
       className={
         dimmed
           ? 'hidden'
-          : 'group relative min-w-0 flex-1 overflow-hidden rounded-3xl p-4 text-white shadow-2xl ring-1 ring-white/20 transition-transform duration-200 ease-out hover:-translate-y-0.5'
+          : 'group relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-3xl p-4 text-white shadow-2xl ring-1 ring-white/20 transition-transform duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40'
       }
       initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
       animate={
@@ -330,6 +338,15 @@ function DashboardCategoryCard({
       onClick={() => {
         onCardClick?.(card.key);
       }}
+      tabIndex={0}
+      role="button"
+      aria-pressed={expanded}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onCardClick?.(card.key);
+        }
+      }}
       transition={
         shouldReduceMotion
           ? { duration: 0 }
@@ -341,7 +358,7 @@ function DashboardCategoryCard({
             }
       }
     >
-      <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient}`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} ${shouldReduceMotion ? '' : 'animate-gradient'}`} />
       <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-black/25" />
       <div
         className="absolute inset-0 opacity-25"
@@ -350,10 +367,23 @@ function DashboardCategoryCard({
           backgroundSize: '11px 11px',
         }}
       />
-      <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-white/20 blur-xl" />
-      <div className="absolute -bottom-16 -left-16 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
       <div
-        className="absolute inset-0 opacity-0 transition-opacity duration-200 ease-out"
+        className={
+          'absolute -right-12 -top-12 h-32 w-32 rounded-full bg-white/20 blur-xl ' +
+          (shouldReduceMotion ? '' : 'animate-float-slow')
+        }
+      />
+      <div
+        className={
+          'absolute -bottom-16 -left-16 h-36 w-36 rounded-full bg-white/10 blur-2xl ' +
+          (shouldReduceMotion ? '' : 'animate-float-slower')
+        }
+      />
+      <div
+        className={
+          'absolute inset-0 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 ' +
+          (shouldReduceMotion ? '' : 'group-hover:animate-shimmer')
+        }
         style={{
           backgroundImage:
             'linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.28) 45%, rgba(255,255,255,0) 70%)',
@@ -1228,40 +1258,59 @@ function StatCard({
   value,
   color,
   icon,
+  order,
 }: {
   title: string;
   value: number;
   color: string;
   icon: React.ComponentType<{ className?: string }>;
+  order: number;
 }) {
   const Icon = icon;
+  const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div className="group relative overflow-hidden rounded-3xl border border-slate-200/60 bg-white/70 p-5 shadow-sm ring-1 ring-white/40 backdrop-blur-md transition-shadow duration-200 hover:shadow-md">
-      <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/50 to-white/60" />
-      <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-slate-900/5 blur-2xl" />
+    <motion.div
+      initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+      animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+      transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: Math.min(order * 0.05, 0.25) }}
+      whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+      className="group premium-surface rounded-3xl p-5 transition-shadow duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      tabIndex={0}
+    >
+      <div className="absolute inset-0 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.22) 45%, rgba(255,255,255,0) 70%)',
+          }}
+        />
+      </div>
 
       <div className="relative flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold tracking-wide text-slate-500">{title}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold tracking-wide text-muted-foreground">{title}</p>
           <p className="mt-1 text-4xl font-black tabular-nums tracking-tight" style={{ color }}>
             {value}
           </p>
         </div>
         <div
-          className="inline-flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-sm ring-1 ring-white/30"
+          className="relative inline-flex h-14 w-14 items-center justify-center rounded-2xl text-primary-foreground shadow-sm ring-1 ring-white/30"
           style={{ backgroundColor: color }}
         >
           <Icon className="h-7 w-7 drop-shadow-sm" />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 export function DashboardPage() {
   const { assets, maintenanceTickets, purchaseRequests } = useData();
   const cards = useMemo(() => buildCards(assets), [assets]);
+
+  const shouldReduceMotion = useReducedMotion();
 
   const [lockedCardKey, setLockedCardKey] = useState<string | null>(null);
 
@@ -1309,10 +1358,10 @@ export function DashboardPage() {
 
   const statusChartData = useMemo(() => {
     return [
-      { name: 'Available', value: totals.available, color: '#00B58E' },
-      { name: 'Assigned', value: totals.assigned, color: '#3155FF' },
-      { name: 'In Repair', value: totals.inRepair, color: '#F2C300' },
-      { name: 'Retired', value: totals.retired, color: '#FF2857' },
+      { name: 'Available', value: totals.available, color: 'var(--chart-2)' },
+      { name: 'Assigned', value: totals.assigned, color: 'var(--chart-blue-1)' },
+      { name: 'In Repair', value: totals.inRepair, color: 'var(--chart-4)' },
+      { name: 'Retired', value: totals.retired, color: 'var(--destructive)' },
     ];
   }, [totals]);
 
@@ -1343,10 +1392,33 @@ export function DashboardPage() {
   }, [purchaseRequests]);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-black tracking-tight text-slate-800 dark:text-white">Dashboard</h1>
+    <div className="relative p-4 sm:p-6 lg:p-8">
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
+        <div
+          className={
+            'absolute -top-20 left-1/2 h-80 w-[40rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl ' +
+            (shouldReduceMotion ? '' : 'animate-float-slow')
+          }
+        />
+        <div
+          className={
+            'absolute -bottom-24 right-[-10rem] h-96 w-96 rounded-full bg-accent/70 blur-3xl ' +
+            (shouldReduceMotion ? '' : 'animate-float-slower')
+          }
+        />
       </div>
+
+      <motion.div
+        initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+        animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut' }}
+        className="mb-8 flex flex-wrap items-end justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-3xl font-black tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm font-semibold text-muted-foreground">Vue d’ensemble des actifs, tickets et demandes</p>
+        </div>
+      </motion.div>
 
       <div className="mb-8 flex flex-nowrap items-stretch justify-start gap-6 overflow-x-auto pb-4">
         {cards.map((card, i) => (
@@ -1362,16 +1434,21 @@ export function DashboardPage() {
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard title="Total Assets" value={totals.total} color="#5B6B81" icon={Layers} />
-        <StatCard title="Available" value={totals.available} color="#00B58E" icon={BadgeCheck} />
-        <StatCard title="Assigned" value={totals.assigned} color="#3155FF" icon={UserRoundCheck} />
-        <StatCard title="In Repair" value={totals.inRepair} color="#F2C300" icon={Wrench} />
-        <StatCard title="Retired" value={totals.retired} color="#FF2857" icon={ArchiveX} />
+        <StatCard title="Total Assets" value={totals.total} color="var(--chart-blue-10)" icon={Layers} order={0} />
+        <StatCard title="Available" value={totals.available} color="var(--chart-2)" icon={BadgeCheck} order={1} />
+        <StatCard title="Assigned" value={totals.assigned} color="var(--chart-blue-1)" icon={UserRoundCheck} order={2} />
+        <StatCard title="In Repair" value={totals.inRepair} color="var(--chart-4)" icon={Wrench} order={3} />
+        <StatCard title="Retired" value={totals.retired} color="var(--destructive)" icon={ArchiveX} order={4} />
       </div>
 
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2 xl:grid-cols-4">
-        <div className="flex h-full flex-col rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-white/50 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/50">
-          <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">Assets by Category</h2>
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.05 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Assets by Category</h2>
           <div className="mt-4 flex h-64 flex-col gap-3">
             <div className="min-h-0 flex-1">
               <ResponsiveContainer width="100%" height="100%">
@@ -1392,7 +1469,15 @@ export function DashboardPage() {
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={makePieTooltipFormatter(categoryChartTotal)} />
+                  <Tooltip
+                    formatter={makePieTooltipFormatter(categoryChartTotal)}
+                    contentStyle={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 14,
+                    }}
+                    labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 700 }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -1408,11 +1493,11 @@ export function DashboardPage() {
                     <div key={String(entry.name)} className="flex items-center justify-between gap-2 rounded-xl px-1.5 py-1">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                        <span className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">{String(entry.name)}</span>
+                        <span className="truncate text-xs font-semibold">{String(entry.name)}</span>
                       </div>
-                      <div className="shrink-0 text-right text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-300">
+                      <div className="shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
                         {formatPercent(percent)}
-                        <span className="ml-2 text-slate-400 dark:text-slate-400">{value}</span>
+                        <span className="ml-2 opacity-70">{value}</span>
                       </div>
                     </div>
                   );
@@ -1420,10 +1505,15 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.section>
 
-        <div className="flex h-full flex-col rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-white/50 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/50">
-          <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">Assets by Status</h2>
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.08 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Assets by Status</h2>
           <div className="mt-4 flex h-64 flex-col gap-3">
             <div className="min-h-0 flex-1">
               <ResponsiveContainer width="100%" height="100%">
@@ -1444,7 +1534,15 @@ export function DashboardPage() {
                       <Cell key={`cell-${entry.name}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={makePieTooltipFormatter(statusChartTotal)} />
+                  <Tooltip
+                    formatter={makePieTooltipFormatter(statusChartTotal)}
+                    contentStyle={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 14,
+                    }}
+                    labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 700 }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -1459,11 +1557,11 @@ export function DashboardPage() {
                     <div key={String(entry.name)} className="flex items-center justify-between gap-2 rounded-xl px-1.5 py-1">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
-                        <span className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">{String(entry.name)}</span>
+                        <span className="truncate text-xs font-semibold">{String(entry.name)}</span>
                       </div>
-                      <div className="shrink-0 text-right text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-300">
+                      <div className="shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
                         {formatPercent(percent)}
-                        <span className="ml-2 text-slate-400 dark:text-slate-400">{value}</span>
+                        <span className="ml-2 opacity-70">{value}</span>
                       </div>
                     </div>
                   );
@@ -1471,49 +1569,73 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.section>
 
-        <div className="flex h-full flex-col rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-white/50 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/50">
-          <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">Maintenance Tickets</h2>
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.11 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Maintenance Tickets</h2>
           <div className="mt-4 h-64">
             {maintenanceChartData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm font-semibold text-slate-500 dark:text-slate-300">
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
                 No data
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={maintenanceChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#8884d8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }} />
+                  <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 14,
+                    }}
+                    labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 700 }}
+                  />
+                  <Bar dataKey="value" fill="var(--chart-blue-2)" radius={[10, 10, 10, 10]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </motion.section>
 
-        <div className="flex h-full flex-col rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-white/50 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/50">
-          <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">Purchase Requests</h2>
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.14 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Purchase Requests</h2>
           <div className="mt-4 h-64">
             {purchaseChartData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm font-semibold text-slate-500 dark:text-slate-300">
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
                 No data
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={purchaseChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#82ca9d" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }} />
+                  <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 14,
+                    }}
+                    labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 700 }}
+                  />
+                  <Bar dataKey="value" fill="var(--chart-2)" radius={[10, 10, 10, 10]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </motion.section>
       </div>
     </div>
   );

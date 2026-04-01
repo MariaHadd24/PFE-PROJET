@@ -289,6 +289,201 @@ def _ensure_assignments_extended_columns(connect) -> None:
 
     cn.close()
 
+
+def _ensure_printer_toner_incidents_raw_columns(connect) -> None:
+    """Ensure dbo.printer_toner_incidents stores full Excel rows.
+
+    Adds:
+    - raw NVARCHAR(MAX) NULL (JSON object: header->value)
+    - rawHeaders NVARCHAR(MAX) NULL (JSON array: header order)
+    """
+
+    cn = connect()
+    cur = cn.cursor()
+
+    try:
+        cur.execute(
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='printer_toner_incidents'",
+        )
+        existing = {str(r[0]).lower() for r in cur.fetchall()}
+    except Exception as e:
+        cn.close()
+        print(f"Printer toner incidents migration skipped: {type(e).__name__}: {e}")
+        return
+
+    if "raw" not in existing:
+        cur.execute("ALTER TABLE dbo.printer_toner_incidents ADD [raw] NVARCHAR(MAX) NULL")
+        cn.commit()
+        print("Printer toner incidents migration: raw column added")
+
+    if "rawheaders" not in existing:
+        cur.execute("ALTER TABLE dbo.printer_toner_incidents ADD [rawHeaders] NVARCHAR(MAX) NULL")
+        cn.commit()
+        print("Printer toner incidents migration: rawHeaders column added")
+
+    # Ensure JSON check constraints exist (best-effort)
+    try:
+        cur.execute(
+            "SELECT name FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('dbo.printer_toner_incidents') AND name = 'CK_printer_toner_incidents_raw_json'"
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE dbo.printer_toner_incidents ADD CONSTRAINT CK_printer_toner_incidents_raw_json "
+                "CHECK ([raw] IS NULL OR ISJSON([raw]) = 1)"
+            )
+            cn.commit()
+            print("Printer toner incidents migration: raw JSON constraint added")
+    except Exception as e:
+        print(f"Printer toner incidents migration (raw constraint) skipped: {type(e).__name__}: {e}")
+
+    try:
+        cur.execute(
+            "SELECT name FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('dbo.printer_toner_incidents') AND name = 'CK_printer_toner_incidents_rawHeaders_json'"
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE dbo.printer_toner_incidents ADD CONSTRAINT CK_printer_toner_incidents_rawHeaders_json "
+                "CHECK ([rawHeaders] IS NULL OR ISJSON([rawHeaders]) = 1)"
+            )
+            cn.commit()
+            print("Printer toner incidents migration: rawHeaders JSON constraint added")
+    except Exception as e:
+        print(f"Printer toner incidents migration (rawHeaders constraint) skipped: {type(e).__name__}: {e}")
+
+    cn.close()
+
+
+def _ensure_printer_toner_incidents_status_column(connect) -> None:
+    """Ensure dbo.printer_toner_incidents has a status column.
+
+    Adds:
+    - status NVARCHAR(20) NOT NULL DEFAULT 'NON_INTERVENUE'
+    And a check constraint restricting values.
+    """
+
+    cn = connect()
+    cur = cn.cursor()
+
+    try:
+        cur.execute(
+            "SELECT COLUMN_NAME, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='printer_toner_incidents'",
+        )
+        cols = {str(r[0]).lower(): str(r[1]).upper() for r in cur.fetchall()}
+    except Exception as e:
+        cn.close()
+        print(f"Printer toner incidents status migration skipped: {type(e).__name__}: {e}")
+        return
+
+    if "status" not in cols:
+        cur.execute(
+            "ALTER TABLE dbo.printer_toner_incidents ADD [status] NVARCHAR(20) NOT NULL "
+            "CONSTRAINT DF_printer_toner_incidents_status DEFAULT ('NON_INTERVENUE')"
+        )
+        cn.commit()
+        print("Printer toner incidents migration: status column added")
+    else:
+        # Ensure existing NULLs are backfilled, and make it NOT NULL if needed.
+        try:
+            cur.execute(
+                "UPDATE dbo.printer_toner_incidents SET [status] = 'NON_INTERVENUE' WHERE [status] IS NULL"
+            )
+            cn.commit()
+        except Exception:
+            pass
+
+        if cols.get("status") == "YES":
+            try:
+                cur.execute("ALTER TABLE dbo.printer_toner_incidents ALTER COLUMN [status] NVARCHAR(20) NOT NULL")
+                cn.commit()
+                print("Printer toner incidents migration: status set to NOT NULL")
+            except Exception as e:
+                print(f"Printer toner incidents migration (status not null) skipped: {type(e).__name__}: {e}")
+
+    # Ensure check constraint exists (best-effort)
+    try:
+        cur.execute(
+            "SELECT name FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('dbo.printer_toner_incidents') AND name = 'CK_printer_toner_incidents_status'"
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE dbo.printer_toner_incidents ADD CONSTRAINT CK_printer_toner_incidents_status "
+                "CHECK ([status] IN ('NON_INTERVENUE','INTERVENUE'))"
+            )
+            cn.commit()
+            print("Printer toner incidents migration: status check constraint added")
+    except Exception as e:
+        print(f"Printer toner incidents migration (status constraint) skipped: {type(e).__name__}: {e}")
+
+    cn.close()
+
+
+def _ensure_printer_toner_incidents_datetime_columns(connect) -> None:
+    """Ensure claimDate/interventionDate store date+time.
+
+    Updates:
+    - claimDate DATE -> DATETIME2(0)
+    - interventionDate DATE -> DATETIME2(0)
+
+    Existing DATE values are kept (time becomes 00:00).
+    """
+
+    cn = connect()
+    cur = cn.cursor()
+
+    try:
+        cur.execute(
+            "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS "
+            "WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='printer_toner_incidents' "
+            "AND COLUMN_NAME IN ('claimDate','interventionDate')"
+        )
+        cols = {str(r[0]): str(r[1]).lower() for r in cur.fetchall()}
+    except Exception as e:
+        cn.close()
+        print(f"Printer toner incidents datetime migration skipped: {type(e).__name__}: {e}")
+        return
+
+    def ensure_dt(col: str) -> None:
+        dtype = cols.get(col)
+        if not dtype:
+            return
+        if dtype == "date":
+            try:
+                cur.execute(f"ALTER TABLE dbo.printer_toner_incidents ALTER COLUMN [{col}] DATETIME2(0) NULL")
+                cn.commit()
+                print(f"Printer toner incidents migration: {col} altered to DATETIME2")
+            except Exception as e:
+                # If an index depends on the column, drop/recreate it.
+                msg = str(e)
+                if col == "claimDate" and ("dependent on column" in msg.lower() or "alter table alter column" in msg.lower()):
+                    try:
+                        cur.execute(
+                            "IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.printer_toner_incidents') AND name = 'IX_printer_toner_incidents_claimDate') "
+                            "DROP INDEX IX_printer_toner_incidents_claimDate ON dbo.printer_toner_incidents"
+                        )
+                        cn.commit()
+                        cur.execute(
+                            "ALTER TABLE dbo.printer_toner_incidents ALTER COLUMN [claimDate] DATETIME2(0) NULL"
+                        )
+                        cn.commit()
+                        cur.execute(
+                            "CREATE INDEX IX_printer_toner_incidents_claimDate ON dbo.printer_toner_incidents(claimDate)"
+                        )
+                        cn.commit()
+                        print("Printer toner incidents migration: claimDate altered to DATETIME2 (index rebuilt)")
+                        return
+                    except Exception as e2:
+                        print(
+                            f"Printer toner incidents migration (claimDate rebuild) skipped: {type(e2).__name__}: {e2}"
+                        )
+                        return
+
+                print(f"Printer toner incidents migration ({col}) skipped: {type(e).__name__}: {e}")
+
+    ensure_dt("claimDate")
+    ensure_dt("interventionDate")
+
+    cn.close()
+
 def main() -> int:
     backend_dir = Path(__file__).resolve().parents[1]
     repo_root = backend_dir.parent
@@ -403,6 +598,24 @@ def main() -> int:
     except Exception as e:
         print(f"Assignments migration failed: {type(e).__name__}: {e}")
         return 5
+
+    try:
+        _ensure_printer_toner_incidents_raw_columns(connect)
+    except Exception as e:
+        print(f"Printer toner incidents migration failed: {type(e).__name__}: {e}")
+        return 5
+
+    try:
+        _ensure_printer_toner_incidents_status_column(connect)
+    except Exception as e:
+        print(f"Printer toner incidents status migration failed: {type(e).__name__}: {e}")
+        return 5
+
+    try:
+        _ensure_printer_toner_incidents_datetime_columns(connect)
+    except Exception as e:
+        print(f"Printer toner incidents datetime migration failed: {type(e).__name__}: {e}")
+        return 5
     # 3) Seed data (inserts demo data into SQL tables)
     try:
         from app.seed import seed_data
@@ -429,6 +642,10 @@ def main() -> int:
             "maintenance_tickets",
             "audit_logs",
             "vendors",
+            "printer_toner_incidents",
+            "printer_toner_entries",
+            "printer_toner_exits",
+            "printer_toner_min_qty",
         ),
     )
 

@@ -7,16 +7,13 @@ import { NotificationPanel } from '../ui/NotificationPanel';
 import { motion } from 'motion/react';
 import logoImage from '../../assets/leoni-logo.svg';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Switch } from '../ui/switch';
 import { Input } from '../ui/input';
 import { toast } from 'sonner';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut } from '../ui/command';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { useData } from '../../context/DataContext';
 import { formatMAD } from '../../lib/money';
-import { useNotifications } from '../../context/NotificationContext';
 
 export function Navbar({
   sidebarOpen,
@@ -25,7 +22,7 @@ export function Navbar({
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
 }) {
-  const { user, logout, updateUser, changePassword } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { themePreference, setThemePreference, isDark } = useTheme();
   const navigate = useNavigate();
   const {
@@ -35,84 +32,32 @@ export function Navbar({
     purchaseOrders,
     maintenanceTickets,
   } = useData();
-  const { preferences, setPreferences } = useNotifications();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const profilePhotoInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
-  const [passwordError, setPasswordError] = useState('');
-  const [profileForm, setProfileForm] = useState({
-    firstName: 'Admin',
-    lastName: 'User',
-    email: 'admin@company.com',
-    department: 'Global IT',
-    location: 'San Francisco, HQ',
-  });
-  const [profileSettings, setProfileSettings] = useState({
-    twoFactorAuth: true,
-    emailOnAssetAssignment: true,
-    browserAlertsOnHighStock: true,
-    monthlyInventoryReports: true,
-  });
+  const profileEmail = useMemo(() => {
+    const email = String((user as any)?.email ?? '').trim();
+    return email || '—';
+  }, [user]);
 
-  const toggleProfileSetting = (key: keyof typeof profileSettings) => {
-    setProfileSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const updateProfileField = (key: keyof typeof profileForm, value: string) => {
-    setProfileForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSaveProfileChanges = () => {
-    toast.success('Admin user information saved');
-  };
-
-  const resetPasswordDialog = () => {
-    setPasswordForm({ current: '', next: '', confirm: '' });
-    setPasswordError('');
-  };
-
-  const openChangePassword = () => {
-    resetPasswordDialog();
-    setIsChangePasswordOpen(true);
-  };
-
-  const submitChangePassword = async () => {
-    setPasswordError('');
-
-    if (!passwordForm.next || passwordForm.next.length < 6) {
-      setPasswordError('New password must be at least 6 characters');
-      return;
-    }
-    if (passwordForm.next !== passwordForm.confirm) {
-      setPasswordError('Passwords do not match');
-      return;
-    }
-
-    const res = await changePassword(passwordForm.current, passwordForm.next);
-    if (!res.ok) {
-      setPasswordError(String(res.error ?? 'Unable to change password'));
-      return;
-    }
-
-    toast.success('Password changed');
-    setIsChangePasswordOpen(false);
-    resetPasswordDialog();
-  };
-
-  useEffect(() => {
-    if (!user?.email) return;
-    setProfileForm((prev) => ({ ...prev, email: user.email }));
-  }, [user?.email]);
+  const profileName = useMemo(() => {
+    const name = String((user as any)?.name ?? '').trim();
+    return name;
+  }, [user]);
 
   const profileInitials = useMemo(() => {
-    const first = String(profileForm.firstName ?? '').trim();
-    const last = String(profileForm.lastName ?? '').trim();
-    const a = first ? first[0] : String(user?.name ?? 'U').trim()[0] ?? 'U';
-    const b = last ? last[0] : (String(user?.name ?? '').trim().split(/\s+/).slice(-1)[0]?.[0] ?? '');
-    return `${String(a).toUpperCase()}${String(b).toUpperCase()}`;
-  }, [profileForm.firstName, profileForm.lastName, user?.name]);
+    const name = profileName;
+    if (name) {
+      const parts = name.split(/\s+/).filter(Boolean);
+      const a = parts[0]?.[0] ?? 'U';
+      const b = (parts.length > 1 ? parts[parts.length - 1]?.[0] : '') ?? '';
+      return `${String(a).toUpperCase()}${String(b).toUpperCase()}`;
+    }
+
+    const email = profileEmail;
+    const a = (email && email !== '—' ? email[0] : 'U') ?? 'U';
+    return String(a).toUpperCase();
+  }, [profileEmail, profileName]);
 
   const handlePickProfilePhoto = () => {
     profilePhotoInputRef.current?.click();
@@ -494,256 +439,53 @@ export function Navbar({
                     className="rounded-full"
                   >
                     <Avatar className="size-8">
-                      <AvatarImage src={String((user as any)?.avatarUrl ?? '') || undefined} alt={profileForm.email} />
+                      <AvatarImage src={String((user as any)?.avatarUrl ?? '') || undefined} alt={profileEmail} />
                       <AvatarFallback className="text-xs font-semibold">{profileInitials}</AvatarFallback>
                     </Avatar>
                   </motion.div>
                   <div className="text-sm text-left">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{profileForm.email}</div>
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{profileEmail}</div>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-500" />
                 </button>
               </PopoverTrigger>
 
-              <PopoverContent align="end" className="w-[440px] p-0 border-gray-200 dark:border-gray-700">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <PopoverContent align="end" className="w-[360px] p-0 border-gray-200 dark:border-gray-700">
+                <div className="p-4 flex items-center gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={handlePickProfilePhoto}
-                        className="rounded-full"
-                        title="Change profile photo"
-                      >
-                        <Avatar className="size-10">
-                          <AvatarImage src={String((user as any)?.avatarUrl ?? '') || undefined} alt={profileForm.email} />
-                          <AvatarFallback className="text-sm font-bold">{profileInitials}</AvatarFallback>
-                        </Avatar>
-                      </button>
-                      <input
-                        ref={profilePhotoInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          void handleProfilePhotoFile(file);
-                          e.target.value = '';
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">{profileForm.email}</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">Joined on Mar 12, 2024</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleSaveProfileChanges}
-                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-
-                <div className="p-4 max-h-[70vh] overflow-y-auto space-y-4">
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Personal Information</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <label className="text-gray-500 text-xs">First Name</label>
-                        <Input
-                          value={profileForm.firstName}
-                          onChange={(e) => updateProfileField('firstName', e.target.value)}
-                          className="h-8 mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-gray-500 text-xs">Last Name</label>
-                        <Input
-                          value={profileForm.lastName}
-                          onChange={(e) => updateProfileField('lastName', e.target.value)}
-                          className="h-8 mt-1"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="text-gray-500 text-xs">Email Address</label>
-                        <Input
-                          type="email"
-                          value={profileForm.email}
-                          onChange={(e) => updateProfileField('email', e.target.value)}
-                          className="h-8 mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-gray-500 text-xs">Department</label>
-                        <Input
-                          value={profileForm.department}
-                          onChange={(e) => updateProfileField('department', e.target.value)}
-                          className="h-8 mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-gray-500 text-xs">Location</label>
-                        <Input
-                          value={profileForm.location}
-                          onChange={(e) => updateProfileField('location', e.target.value)}
-                          className="h-8 mt-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Security Settings</h4>
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Two-Factor Authentication</div>
-                        <div className="text-xs text-gray-500">Extra security for your account</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 dark:text-gray-300">{profileSettings.twoFactorAuth ? 'Enabled' : 'Disabled'}</span>
-                        <Switch
-                          checked={profileSettings.twoFactorAuth}
-                          onCheckedChange={() => toggleProfileSetting('twoFactorAuth')}
-                          className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-gray-300"
-                        />
-                      </div>
-                    </div>
                     <button
                       type="button"
-                      onClick={openChangePassword}
-                      className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
+                      onClick={handlePickProfilePhoto}
+                      className="rounded-full"
+                      title="Changer la photo de profil"
                     >
-                      Change Password
+                      <Avatar className="size-12">
+                        <AvatarImage src={String((user as any)?.avatarUrl ?? '') || undefined} alt={profileEmail} />
+                        <AvatarFallback className="text-sm font-bold">{profileInitials}</AvatarFallback>
+                      </Avatar>
                     </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notification Settings</h4>
-                    <div className="flex items-center justify-between py-1.5">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Only request notifications (demandes)</span>
-                      <Switch
-                        checked={preferences.onlyRequests}
-                        onCheckedChange={(checked) => setPreferences({ onlyRequests: Boolean(checked) })}
-                        className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-gray-300"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between py-1.5">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Email on Asset Assignment</span>
-                      <Switch
-                        checked={profileSettings.emailOnAssetAssignment}
-                        onCheckedChange={() => toggleProfileSetting('emailOnAssetAssignment')}
-                        className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-gray-300"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between py-1.5">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Browser Alerts on High Stock</span>
-                      <Switch
-                        checked={profileSettings.browserAlertsOnHighStock}
-                        onCheckedChange={() => toggleProfileSetting('browserAlertsOnHighStock')}
-                        className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-gray-300"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between py-1.5">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Monthly Inventory Reports</span>
-                      <Switch
-                        checked={profileSettings.monthlyInventoryReports}
-                        onCheckedChange={() => toggleProfileSetting('monthlyInventoryReports')}
-                        className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-gray-300"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Login Activity</h4>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-900 dark:text-gray-100">Chrome on Windows</span>
-                      <span className="text-gray-500">192.168.1.1 • 2 mins ago</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-900 dark:text-gray-100">Safari on iPhone</span>
-                      <span className="text-gray-500">172.16.0.1 • 5 hours ago</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-900 dark:text-gray-100">Firefox on macOS</span>
-                      <span className="text-gray-500">10.0.0.1 • 1 day ago</span>
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Dialog
-              open={isChangePasswordOpen}
-              onOpenChange={(open) => {
-                setIsChangePasswordOpen(open);
-                if (!open) resetPasswordDialog();
-              }}
-            >
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Change Password</DialogTitle>
-                </DialogHeader>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-500">Current password</label>
-                    <Input
-                      type="password"
-                      value={passwordForm.current}
-                      onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
-                      className="h-9 mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-500">New password</label>
-                    <Input
-                      type="password"
-                      value={passwordForm.next}
-                      onChange={(e) => setPasswordForm((p) => ({ ...p, next: e.target.value }))}
-                      className="h-9 mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-500">Confirm new password</label>
-                    <Input
-                      type="password"
-                      value={passwordForm.confirm}
-                      onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
-                      className="h-9 mt-1"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          void submitChangePassword();
-                        }
+                    <input
+                      ref={profilePhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        void handleProfilePhotoFile(file);
+                        e.target.value = '';
                       }}
                     />
                   </div>
 
-                  {passwordError && <div className="text-sm text-red-600">{passwordError}</div>}
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{profileName || profileEmail}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{profileName ? profileEmail : 'Clique sur la photo pour changer'}</p>
+                    {profileName && <p className="text-xs text-gray-500 mt-0.5">Clique sur la photo pour changer</p>}
+                  </div>
                 </div>
-
-                <DialogFooter>
-                  <button
-                    type="button"
-                    className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
-                    onClick={() => setIsChangePasswordOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm hover:bg-primary/90"
-                    onClick={() => void submitChangePassword()}
-                  >
-                    Save
-                  </button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              </PopoverContent>
+            </Popover>
 
             <motion.button
               onClick={handleLogout}

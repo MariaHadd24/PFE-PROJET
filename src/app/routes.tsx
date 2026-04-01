@@ -14,6 +14,7 @@ import { VendorPortalPage } from './pages/VendorPortalPage';
 import { ReportingPage } from './pages/ReportingPage';
 import { StockInventoryPage } from './pages/StockInventoryPage';
 import { PrinterIncidentsPage } from './pages/PrinterIncidentsPage';
+import { PrinterTonerPage } from './pages/PrinterTonerPage';
 import { LicencesPage } from './pages/LicencesPage';
 import PdfHistoryPage from './pages/PdfHistoryPage';
 import { useAuth } from './context/AuthContext';
@@ -75,6 +76,10 @@ export const router = createBrowserRouter([
       {
         path: 'printer-incidents',
         Component: PrinterIncidentsPage
+      },
+      {
+        path: 'printer-toner',
+        Component: PrinterTonerPage,
       },
       {
         path: 'assignments',

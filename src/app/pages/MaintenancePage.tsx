@@ -67,20 +67,47 @@ export function MaintenancePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Maintenance</h1>
-          <p className="text-muted-foreground mt-1">Manage maintenance tickets and repairs</p>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <Wrench className="h-[18px] w-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Maintenance</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Maintenance
+                    </span>
+                    <span className="page-hero__title-text">Maintenance</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Manage maintenance tickets and repairs</p>
+              </div>
+            </div>
+          </div>
+
+          {canManageMaintenance && (
+            <div className="page-hero__actions">
+              <button
+                className="flex items-center gap-2 bg-[#1F3C88] text-white px-4 py-2 rounded-lg hover:bg-[#163069] transition-colors"
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Plus className="w-5 h-5" />
+                New ticket
+              </button>
+            </div>
+          )}
         </div>
-        {canManageMaintenance && (
-          <button
-            className="flex items-center gap-2 bg-[#1F3C88] text-white px-4 py-2 rounded-lg hover:bg-[#163069] transition-colors"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus className="w-5 h-5" />
-            New ticket
-          </button>
-        )}
       </div>
 
       {/* Stats */}

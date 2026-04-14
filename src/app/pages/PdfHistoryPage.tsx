@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
+import { FileText } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { FaDownload, FaEnvelope, FaTrash } from 'react-icons/fa';
 
 import { apiGet, apiDelete, apiPost } from '../lib/api';
@@ -50,29 +50,68 @@ export default function PdfHistoryPage() {
   };
 
   const handleSend = async (file: string) => {
-    const to = window.prompt('Email à envoyer :');
+    const to = window.prompt('Recipient email:');
     if (!to) return;
     await apiPost(`/pdfs/${encodeURIComponent(file)}/send`, { to });
-    alert('PDF envoyé !');
+    alert('PDF sent!');
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-4">PDF History</h2>
-      <div className="flex flex-wrap gap-2 mb-4 items-center">
+    <div className="p-6 space-y-6">
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <FileText className="h-[18px] w-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">PDFs</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      PDF History
+                    </span>
+                    <span className="page-hero__title-text">PDF History</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Browse, download, and send generated PDFs</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="page-hero__actions">
+            <Button onClick={fetchPdfs} variant="secondary" disabled={loading}>
+              {loading ? 'Refreshing…' : 'Refresh'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 items-center">
         <Input
           placeholder="Search PDFs..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           className="w-64"
         />
-        <Select value={dateFilter} onChange={e => setDateFilter(e.target.value)}>
+        <select
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground"
+        >
           <option>All Dates</option>
           {/* Add more date options dynamically if needed */}
-        </Select>
-        <Button onClick={fetchPdfs} variant="secondary">Refresh</Button>
+        </select>
       </div>
-      <div className="bg-white rounded shadow p-4">
+      <div className="premium-surface p-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
@@ -95,15 +134,21 @@ export default function PdfHistoryPage() {
                 <td className="py-2">{pdf.generatedBy}</td>
                 <td className="py-2">{pdf.date ? formatDate(new Date(Number(pdf.date) * 1000).toISOString()) : ''}</td>
                 <td className="py-2 flex gap-2">
-                  <Button size="sm" variant="primary" title="Download" onClick={() => handleDownload(pdf.file)}><FaDownload /></Button>
-                  <Button size="sm" variant="success" title="Send" onClick={() => handleSend(pdf.file)}><FaEnvelope /></Button>
-                  <Button size="sm" variant="danger" title="Delete" onClick={() => handleDelete(pdf.file)}><FaTrash /></Button>
+                  <Button size="icon" variant="outline" title="Download" onClick={() => handleDownload(pdf.file)}>
+                    <FaDownload />
+                  </Button>
+                  <Button size="icon" variant="outline" title="Send" onClick={() => handleSend(pdf.file)}>
+                    <FaEnvelope />
+                  </Button>
+                  <Button size="icon" variant="destructive" title="Delete" onClick={() => handleDelete(pdf.file)}>
+                    <FaTrash />
+                  </Button>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center text-gray-400 py-8">No PDFs found.</td>
+                <td colSpan={4} className="text-center text-muted-foreground py-8">No PDFs found.</td>
               </tr>
             )}
           </tbody>

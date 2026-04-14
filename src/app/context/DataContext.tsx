@@ -144,7 +144,7 @@ export type DataContextValue = {
   addMaintenanceTicket: (payload: Omit<MaintenanceTicket, 'id'> & { id?: string }) => Promise<MaintenanceTicket>;
   addVendor: (payload: Omit<Vendor, 'id'> & { id?: string }) => Promise<Vendor>;
   addAuditLog: (payload: Omit<AuditLog, 'id'> & { id?: string }) => Promise<AuditLog>;
-  undoAuditLog: (id: string) => Promise<{ ok: boolean; applied: 'RESTORE' | 'REVERT'; entity: string; entityId: string }>;
+  undoAuditLog: (id: string) => Promise<{ ok: boolean; applied: 'DELETE' | 'NOOP' | 'RESTORE' | 'REVERT'; entity: string; entityId: string }>;
 };
 
 const DATA_CONTEXT_KEY = '__PFE_DATA_CONTEXT__';
@@ -268,7 +268,98 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return '*';
     };
 
-    const refreshByScope = async (scope: string | null) => {
+    const runRefresh = () => {
+      if (isStopped) return;
+      if (isRefreshing) return;
+      if (!pendingScope) return;
+      const scope = pendingScope;
+      pendingScope = null;
+      isRefreshing = true;
+      void refreshByScope(scope)
+        .catch(() => {
+          // ignore; next events will retry
+        })
+        .finally(() => {
+          isRefreshing = false;
+          // If something queued while we were refreshing, run again.
+          if (pendingScope) runRefresh();
+        });
+    };
+
+    const scheduleRefresh = (scope: string | null) => {
+      pendingScope = mergeScope(pendingScope, scope);
+      runRefresh();
+    };
+
+    const cleanupWs = () => {
+      try {
+        ws?.close();
+      } catch {
+        // ignore
+      }
+      ws = null;
+    };
+
+    const connect = () => {
+      if (isStopped) return;
+      cleanupWs();
+
+      try {
+        ws = new WebSocket(getApiWsUrl('/ws'));
+      } catch {
+        // Retry later if the URL is invalid / env not ready.
+        reconnect();
+        return;
+      }
+
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(String(ev?.data ?? ''));
+          if (!data || typeof data !== 'object') return;
+          if (data.type === 'ping') return;
+          if (data.type === 'invalidate') scheduleRefresh(String((data as any).entity ?? '') || '*');
+        } catch {
+          // Ignore unknown payloads
+        }
+      };
+
+      ws.onclose = () => {
+        if (isStopped) return;
+        reconnect();
+      };
+
+      ws.onerror = () => {
+        // Force close to trigger reconnect.
+        cleanupWs();
+        if (isStopped) return;
+        reconnect();
+      };
+    };
+
+    const reconnect = () => {
+      if (isStopped) return;
+      if (reconnectTimer != null) return;
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, 1000);
+    };
+
+    connect();
+
+    return () => {
+      isStopped = true;
+      if (reconnectTimer != null) window.clearTimeout(reconnectTimer);
+      cleanupWs();
+    };
+  }, [fetchData]);
+
+  const refreshAll = useCallback(async () => {
+    await fetchData();
+  }, [fetchData]);
+
+  const refreshByScope = useCallback(
+    async (scope: string | null) => {
       const s = String(scope || '').trim();
       if (!s || s === '*') {
         await refreshAll();
@@ -363,97 +454,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setAuditLogs(Array.isArray(apiAuditLogs) ? apiAuditLogs : []);
         return;
       }
-    };
-
-    const runRefresh = () => {
-      if (isStopped) return;
-      if (isRefreshing) return;
-      if (!pendingScope) return;
-      const scope = pendingScope;
-      pendingScope = null;
-      isRefreshing = true;
-      void refreshByScope(scope)
-        .catch(() => {
-          // ignore; next events will retry
-        })
-        .finally(() => {
-          isRefreshing = false;
-          // If something queued while we were refreshing, run again.
-          if (pendingScope) runRefresh();
-        });
-    };
-
-    const scheduleRefresh = (scope: string | null) => {
-      pendingScope = mergeScope(pendingScope, scope);
-      runRefresh();
-    };
-
-    const cleanupWs = () => {
-      try {
-        ws?.close();
-      } catch {
-        // ignore
-      }
-      ws = null;
-    };
-
-    const connect = () => {
-      if (isStopped) return;
-      cleanupWs();
-
-      try {
-        ws = new WebSocket(getApiWsUrl('/ws'));
-      } catch {
-        // Retry later if the URL is invalid / env not ready.
-        reconnect();
-        return;
-      }
-
-      ws.onmessage = (ev) => {
-        try {
-          const data = JSON.parse(String(ev?.data ?? ''));
-          if (!data || typeof data !== 'object') return;
-          if (data.type === 'ping') return;
-          if (data.type === 'invalidate') scheduleRefresh(String((data as any).entity ?? '') || '*');
-        } catch {
-          // Ignore unknown payloads
-        }
-      };
-
-      ws.onclose = () => {
-        if (isStopped) return;
-        reconnect();
-      };
-
-      ws.onerror = () => {
-        // Force close to trigger reconnect.
-        cleanupWs();
-        if (isStopped) return;
-        reconnect();
-      };
-    };
-
-    const reconnect = () => {
-      if (isStopped) return;
-      if (reconnectTimer != null) return;
-      reconnectTimer = window.setTimeout(() => {
-        reconnectTimer = null;
-        connect();
-      }, 1000);
-    };
-
-    connect();
-
-    return () => {
-      isStopped = true;
-      if (reconnectTimer != null) window.clearTimeout(reconnectTimer);
-      cleanupWs();
-    };
-  }, [fetchData]);
-
-  const refreshAll = useCallback(async () => {
-    await fetchData();
-  }, [fetchData]);
+    },
+    [refreshAll],
+  );
 
   const value = useMemo<DataContextValue>(
     () => ({
@@ -606,6 +609,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       undoAuditLog: async (id) => {
         const result = await apiUndoAuditLog(id);
         await refreshByScope(result.entity);
+        await refreshByScope('AuditLog');
         return result;
       },
     }),

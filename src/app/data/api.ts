@@ -48,7 +48,8 @@ export const patchSupplier = (id: string, payload: Patch<Supplier>) => apiPatch<
 export const deleteSupplier = (id: string) => apiDelete<{ ok: boolean }>(`/suppliers/${encodeURIComponent(id)}`);
 
 export const listLicences = () => apiGet<Licence[]>('/licences?limit=10000');
-export const createLicence = (payload: Create<Licence>) => apiPost<Licence>('/licences', payload);
+export type CreateLicencePayload = Omit<Licence, 'id' | 'createdAt' | 'updatedAt'> & { id?: string };
+export const createLicence = (payload: CreateLicencePayload) => apiPost<Licence>('/licences', payload);
 export const patchLicence = (id: string, payload: Patch<Licence>) => apiPatch<Licence>(`/licences/${encodeURIComponent(id)}`, payload);
 export const deleteLicence = (id: string) => apiDelete<{ ok: boolean }>(`/licences/${encodeURIComponent(id)}`);
 
@@ -109,7 +110,7 @@ export const deletePurchaseOrder = (id: string) =>
 export const listAuditLogs = () => apiGet<AuditLog[]>('/audit-logs?limit=1000');
 export const createAuditLog = (payload: Create<AuditLog>) => apiPost<AuditLog>('/audit-logs', payload);
 export const undoAuditLog = (id: string) =>
-  apiPost<{ ok: boolean; applied: 'RESTORE' | 'REVERT'; entity: string; entityId: string }>(
+  apiPost<{ ok: boolean; applied: 'DELETE' | 'NOOP' | 'RESTORE' | 'REVERT'; entity: string; entityId: string }>(
     `/audit-logs/${encodeURIComponent(id)}/undo`,
     {},
   );

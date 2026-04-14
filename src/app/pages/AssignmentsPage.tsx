@@ -603,13 +603,13 @@ export function AssignmentsPage() {
 
     const password = approvePassword;
     if (!password.trim()) {
-      setApproveError('Mot de passe requis');
+      setApproveError('Password is required');
       return;
     }
 
     const signatureData = approveSignatureData;
     if (!signatureData.trim()) {
-      setApproveError('Signature requise');
+      setApproveError('Signature is required');
       return;
     }
 
@@ -706,7 +706,7 @@ export function AssignmentsPage() {
                     onClick={() => void approveAssignment(a)}
                     className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
                   >
-                    Valider
+                    Approve
                   </button>
                 )}
                 {canManageAssignments && s !== 'Returned' && (
@@ -777,7 +777,7 @@ export function AssignmentsPage() {
                     onClick={() => void approveAssignment(a)}
                     className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
                   >
-                    Valider
+                    Approve
                   </button>
                 )}
                 {canManageAssignments && s !== 'Returned' && (
@@ -826,10 +826,10 @@ export function AssignmentsPage() {
       { key: 'bci', label: 'BCI', render: getPrinterBci },
       { key: 'bce', label: 'BCE', render: getPrinterBce },
       { key: 'vnc', label: 'VNC', render: getPrinterVnc },
-      { key: 'store', label: 'Magasin', render: getPrinterStore },
-      { key: 'cabinet', label: 'Armoire', render: getPrinterCabinet },
+      { key: 'store', label: 'Store', render: getPrinterStore },
+      { key: 'cabinet', label: 'Cabinet', render: getPrinterCabinet },
       { key: 'rack', label: 'Rack', render: getPrinterRack },
-      { key: 'level', label: 'Étage', render: getPrinterLevel },
+      { key: 'level', label: 'Level', render: getPrinterLevel },
       { key: 'stockIn', label: 'Stock IN', render: getPrinterStockIn },
       { key: 'stockOut', label: 'Stock OUT', render: getPrinterStockOut },
       { key: 'dateOut', label: 'Date OUT', render: getPrinterDateOut },
@@ -859,7 +859,7 @@ export function AssignmentsPage() {
                   onClick={() => void approveAssignment(a)}
                   className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
                 >
-                  Valider
+                  Approve
                 </button>
               )}
               {canManageAssignments && s !== 'Returned' && (
@@ -1010,28 +1010,53 @@ export function AssignmentsPage() {
       animate={shouldReduceMotion ? undefined : 'show'}
     >
       {/* Header */}
-      <motion.div className="flex items-center justify-between" variants={shouldReduceMotion ? undefined : pageItemVariants}>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Assignments</h1>
-          <p className="text-muted-foreground mt-1">Manage asset assignments to users</p>
-        </div>
-        {canManageAssignments && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleClearAll}
-              className="flex items-center gap-2 bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
-            >
-              Remove all
-            </button>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-[#1F3C88] text-white px-4 py-2 rounded-lg hover:bg-[#163069] transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              New assignment
-            </button>
+      <motion.div className="page-hero" variants={shouldReduceMotion ? undefined : pageItemVariants}>
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <Plus className="h-[18px] w-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Assignments</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Assignments
+                    </span>
+                    <span className="page-hero__title-text">Assignments</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Manage asset assignments to users</p>
+              </div>
+            </div>
           </div>
-        )}
+
+          {canManageAssignments && (
+            <div className="page-hero__actions">
+              <button
+                onClick={handleClearAll}
+                className="flex items-center gap-2 bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
+              >
+                Remove all
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-[#1F3C88] text-white px-4 py-2 rounded-lg hover:bg-[#163069] transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                New assignment
+              </button>
+            </div>
+          )}
+        </div>
       </motion.div>
 
       {/* Stats */}
@@ -1180,12 +1205,12 @@ export function AssignmentsPage() {
             className="space-y-4"
           >
             <DialogHeader>
-              <DialogTitle>Valider assignment</DialogTitle>
-              <DialogDescription>Entrez le mot de passe et uploadez votre signature pour valider.</DialogDescription>
+              <DialogTitle>Approve assignment</DialogTitle>
+              <DialogDescription>Enter your password and upload your signature to approve.</DialogDescription>
             </DialogHeader>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Mot de passe</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Password</label>
               <input
                 value={approvePassword}
                 onChange={(e) => {
@@ -1193,7 +1218,7 @@ export function AssignmentsPage() {
                   if (approveError) setApproveError('');
                 }}
                 type="password"
-                placeholder="Mot de passe"
+                placeholder="Password"
                 className={`w-full h-10 px-3 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-[#1F3C88] focus:border-transparent ${
                   approveError ? 'border-destructive' : 'border-border'
                 }`}
@@ -1232,7 +1257,7 @@ export function AssignmentsPage() {
                   </div>
                 ) : (
                   <div className="h-12 w-48 border border-border rounded bg-muted/20 flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground">Aucune signature</span>
+                    <span className="text-xs text-muted-foreground">No signature</span>
                   </div>
                 )}
               </div>
@@ -1247,14 +1272,14 @@ export function AssignmentsPage() {
                 disabled={isApproving}
                 className="px-4 py-2 rounded-lg border border-border bg-card text-foreground hover:bg-muted/30 disabled:opacity-60"
               >
-                Annuler
+                Cancel
               </button>
               <button
                 type="submit"
                 disabled={isApproving || !approvePassword.trim() || !approveSignatureData.trim()}
                 className="px-4 py-2 rounded-lg bg-[#1F3C88] text-white hover:bg-[#163069] disabled:opacity-60"
               >
-                Valider
+                Approve
               </button>
             </DialogFooter>
           </form>

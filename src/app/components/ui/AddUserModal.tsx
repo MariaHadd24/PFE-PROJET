@@ -195,23 +195,23 @@ export function AddUserModal({ isOpen, onClose, onAdd, initialUser, onUpdate }: 
 
   const roleInfo: Record<UserRole, { label: string; description: string; color: string }> = {
     Admin: {
-      label: 'Administrateur IT',
-      description: 'Paramétrage global, gestion référentiels, droits, supervision',
+      label: 'IT Administrator',
+      description: 'Global configuration, reference data, permissions, and monitoring',
       color: 'bg-purple-50 border-purple-200',
     },
     Manager: {
       label: 'Manager',
-      description: "Validation des demandes d’achat, suivi KPI",
+      description: 'Approves purchase requests and tracks KPIs',
       color: 'bg-blue-50 border-blue-200',
     },
     Technician: {
-      label: 'Technicien',
-      description: 'Inventaire, mouvements, affectations, maintenance',
+      label: 'Technician',
+      description: 'Inventory, movements, assignments, and maintenance',
       color: 'bg-green-50 border-green-200',
     },
     Reader: {
-      label: 'Lecteur',
-      description: 'Consultation uniquement (tableaux, fiches, Dashboard)',
+      label: 'Reader',
+      description: 'Read-only access (tables, details, dashboard)',
       color: 'bg-gray-50 border-gray-200',
     },
   };

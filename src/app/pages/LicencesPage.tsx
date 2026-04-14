@@ -25,28 +25,54 @@ export function LicencesPage() {
   }) => {
     try {
       await addLicence(payload as any);
-      toast.success('Licence ajoutée');
+      toast.success('Licence added');
     } catch (e: any) {
-      toast.error('Impossible d\'ajouter la licence', { description: String(e?.message ?? 'Network error') });
+      toast.error('Unable to add licence', { description: String(e?.message ?? 'Network error') });
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Licences</h1>
-          <p className="text-muted-foreground mt-1">Gestion des licences</p>
-        </div>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <Plus className="h-[18px] w-[18px]" />
+              </div>
 
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          Ajouter une licence
-        </button>
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Licences</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Licences
+                    </span>
+                    <span className="page-hero__title-text">Licences</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Manage software licences</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="page-hero__actions">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all font-medium"
+            >
+              <Plus className="w-5 h-5" />
+              Add licence
+            </button>
+          </div>
+        </div>
       </div>
 
       <AddLicenceModal
@@ -65,8 +91,8 @@ export function LicencesPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">PLANT</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">KEY</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">MANUFACTURER</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">DATE D&apos;ACHAT</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">DATE D&apos;EXPIRATION</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">PURCHASE DATE</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">EXPIRY DATE</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">SUPPLIER</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">CREATED AT</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">UPDATED AT</th>
@@ -77,7 +103,7 @@ export function LicencesPage() {
               {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-6 py-10 text-center text-sm text-muted-foreground">
-                    {loading ? 'Chargement…' : 'Aucune licence trouvée.'}
+                    {loading ? 'Loading…' : 'No licences found.'}
                   </td>
                 </tr>
               ) : (

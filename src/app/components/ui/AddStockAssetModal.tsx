@@ -58,6 +58,7 @@ function addYearsIso(iso: string, years: number) {
 
 const SCANNER_TYPES = ['Cradle', 'Pistolet', 'Barcode Scanner'] as const;
 const CISCO_TYPES = ['Switch', 'Router', 'Wireless Controller', 'Access Point'] as const;
+const KABA_TYPES = ['Datamanager', 'Pointeuse IP', 'Lecteur Kaba'] as const;
 const NOTEBOOK_WORKSTATION_BRANDS = ['HP', 'Dell'] as const;
 const PRINTER_BRANDS = ['HP', 'ZEBRA'] as const;
 
@@ -75,8 +76,12 @@ function isScannerCategory(category: string) {
   return category === 'Scanner' || category === 'Scanners';
 }
 
+function isKabaCategory(category: string) {
+  return String(category ?? '').trim().toLowerCase() === 'kaba';
+}
+
 function categoryNeedsType(category: string) {
-  return isScannerCategory(category) || category === 'Cisco';
+  return isScannerCategory(category) || category === 'Cisco' || isKabaCategory(category);
 }
 
 type StockAssetDraft = {
@@ -373,14 +378,14 @@ export function AddStockAssetModal({ isOpen, onClose, onAdd, categories, sites }
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Storage Location (Magasin / Armoire / Rack / Étage)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Storage location (Store / Cabinet / Rack / Level)</label>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <input
                     type="text"
                     name="storeLocation"
                     value={formData.storeLocation}
                     onChange={handleChange}
-                    placeholder="Magasin"
+                    placeholder="Store"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1B4F91] focus:border-transparent"
                   />
                   <input
@@ -388,7 +393,7 @@ export function AddStockAssetModal({ isOpen, onClose, onAdd, categories, sites }
                     name="cabinet"
                     value={formData.cabinet}
                     onChange={handleChange}
-                    placeholder="Armoire"
+                    placeholder="Cabinet"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1B4F91] focus:border-transparent"
                   />
                   <input
@@ -404,7 +409,7 @@ export function AddStockAssetModal({ isOpen, onClose, onAdd, categories, sites }
                     name="level"
                     value={formData.level}
                     onChange={handleChange}
-                    placeholder="Étage"
+                    placeholder="Level"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1B4F91] focus:border-transparent"
                   />
                 </div>
@@ -479,7 +484,12 @@ export function AddStockAssetModal({ isOpen, onClose, onAdd, categories, sites }
                       }`}
                     >
                       <option value="">Select...</option>
-                      {(isScannerCategory(formData.category) ? SCANNER_TYPES : CISCO_TYPES).map((t) => (
+                      {(isKabaCategory(formData.category)
+                        ? KABA_TYPES
+                        : isScannerCategory(formData.category)
+                          ? SCANNER_TYPES
+                          : CISCO_TYPES
+                      ).map((t) => (
                         <option key={t} value={t}>
                           {t}
                         </option>

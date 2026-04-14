@@ -79,7 +79,7 @@ function KPICard({
 export function VendorPortalPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<VendorStatus | ''>('');
-  const { vendors, addVendor } = useData();
+  const { vendors, purchaseOrders, addVendor } = useData();
   const [isOnboardOpen, setIsOnboardOpen] = useState(false);
 
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -105,6 +105,17 @@ export function VendorPortalPage() {
         .includes(q);
     });
   }, [vendors, searchTerm, filterStatus]);
+
+  const purchasesBySupplier = useMemo(() => {
+    const norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
+    const map = new Map<string, number>();
+    for (const po of purchaseOrders) {
+      const key = norm((po as any)?.supplier);
+      if (!key) continue;
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+  }, [purchaseOrders]);
 
   const activeVendorsCount = useMemo(() => {
     return vendors.filter(v => v.status !== 'UNDER REVIEW').length;
@@ -156,22 +167,46 @@ export function VendorPortalPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Vendor &amp; Supplier Directory</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage partnerships, contracts, and procurement relationships
-          </p>
-        </div>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <Building2 className="h-[18px] w-[18px]" />
+              </div>
 
-        <button
-          type="button"
-          onClick={() => setIsOnboardOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-[#1B4F91] to-[#2563EB] text-white px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          Onboard Vendor
-        </button>
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Vendors</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Vendor &amp; Supplier Directory
+                    </span>
+                    <span className="page-hero__title-text">Vendor &amp; Supplier Directory</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Manage partnerships, contracts, and procurement relationships</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="page-hero__actions">
+            <button
+              type="button"
+              onClick={() => setIsOnboardOpen(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-[#1B4F91] to-[#2563EB] text-white px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all font-medium"
+            >
+              <Plus className="w-5 h-5" />
+              Onboard Vendor
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -250,6 +285,7 @@ export function VendorPortalPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendor / Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Contact Info</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Contract Data</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Purchases</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rating</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
@@ -275,6 +311,13 @@ export function VendorPortalPage() {
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-foreground">{formatCompactMAD(v.totalSpend)}</div>
                     <div className="text-xs text-muted-foreground">{v.activeContracts} Active Contract(s)</div>
+                  </td>
+
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-black tabular-nums text-foreground">
+                      {purchasesBySupplier.get(String(v.name ?? '').trim().toLowerCase()) ?? 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Purchase order(s)</div>
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap">

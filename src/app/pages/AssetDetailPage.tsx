@@ -29,6 +29,28 @@ const statusStyles: Record<AssetStatus, string> = {
 
 const SCANNER_TYPES = ['Cradle', 'Pistolet', 'Barcode Scanner'] as const;
 const CISCO_TYPES = ['Switch', 'Router', 'Wireless Controller', 'Access Point'] as const;
+const KABA_TYPES = ['Datamanager', 'Pointeuse IP', 'Lecteur Kaba'] as const;
+
+function isKabaCategory(category: unknown): boolean {
+  const v = String(category ?? '').trim();
+  if (!v) return false;
+  return v.toLowerCase() === 'kaba' || v.toUpperCase() === 'KABA';
+}
+
+function normalizeKabaType(value: unknown): string {
+  const v = String(value ?? '').trim();
+  if (!v) return '';
+  const low = v.toLowerCase();
+  if (low.includes('data manager') || low.includes('datamanager') || low.includes('data-manager')) return 'Datamanager';
+  if (low.includes('terminal ip') || low.includes('pointeuse ip') || low.includes('pointeuse')) return 'Pointeuse IP';
+  if (low.includes('lecteur') || low.includes('kaba')) return 'Lecteur Kaba';
+  return v;
+}
+
+function normalizeAssetType(category: unknown, value: unknown): string {
+  if (isKabaCategory(category)) return normalizeKabaType(value);
+  return normalizeCiscoType(value);
+}
 
 function normalizeCiscoType(value: unknown): string {
   const v = String(value ?? '').trim();
@@ -51,6 +73,10 @@ function isScannerCategory(category: string) {
   return category === 'Scanner' || category === 'Scanners';
 }
 
+function isCiscoCategory(category: unknown): boolean {
+  return String(category ?? '').trim().toLowerCase() === 'cisco';
+}
+
 function isWorkstationCategory(category: string) {
   return category === 'Workstation';
 }
@@ -60,7 +86,7 @@ function isNotebookCategory(category: string) {
 }
 
 function categoryNeedsType(category: string) {
-  return isScannerCategory(category) || category === 'Cisco';
+  return isScannerCategory(category) || isCiscoCategory(category) || isKabaCategory(category);
 }
 
 export function AssetDetailPage() {
@@ -148,7 +174,7 @@ export function AssetDetailPage() {
     macAddress: asset.macAddress ?? '',
     model: asset.model,
     category: asset.category,
-    type: normalizeCiscoType((asset as any).type ?? ''),
+    type: normalizeAssetType(asset.category, (asset as any).type ?? ''),
     supplier: asset.supplier,
     site: asset.site,
     status: asset.status,
@@ -165,7 +191,7 @@ export function AssetDetailPage() {
       macAddress: asset.macAddress ?? '',
       model: asset.model,
       category: asset.category,
-      type: normalizeCiscoType((asset as any).type ?? ''),
+      type: normalizeAssetType(asset.category, (asset as any).type ?? ''),
       supplier: asset.supplier,
       site: asset.site,
       status: asset.status,
@@ -185,7 +211,7 @@ export function AssetDetailPage() {
     }
 
     if (categoryNeedsType(form.category) && !String(form.type ?? '').trim()) {
-      toast.error('Invalid type', { description: 'Type is required for Scanner / Cisco' });
+      toast.error('Invalid type', { description: 'Type is required for Scanner / Cisco / Kaba' });
       return;
     }
 
@@ -296,17 +322,41 @@ export function AssetDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <Link to="/stock-inventory" className="inline-flex items-center gap-2 text-primary hover:opacity-90 mb-4">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Assets IT
-        </Link>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">{asset.assetTag}</h1>
-            <p className="text-muted-foreground mt-1">{asset.model}</p>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <Link to="/stock-inventory" className="inline-flex items-center gap-2 text-primary hover:opacity-90 mb-4">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Assets IT
+            </Link>
+
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <Package className="h-[18px] w-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Asset</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      {asset.assetTag}
+                    </span>
+                    <span className="page-hero__title-text">{asset.assetTag}</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">{asset.model}</p>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="page-hero__actions">
             <span className={`px-4 py-2 rounded-lg font-semibold ${statusStyles[asset.status]}`}>
               {asset.status}
             </span>
@@ -465,7 +515,12 @@ export function AssetDetailPage() {
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(isScannerCategory(form.category) ? SCANNER_TYPES : CISCO_TYPES).map((t) => (
+                        {(isKabaCategory(form.category)
+                          ? KABA_TYPES
+                          : isScannerCategory(form.category)
+                            ? SCANNER_TYPES
+                            : CISCO_TYPES
+                        ).map((t) => (
                           <SelectItem key={t} value={t}>
                             {t}
                           </SelectItem>
@@ -632,10 +687,10 @@ export function AssetDetailPage() {
                       { label: 'Date OUT', value: asset.dateOut },
                       { label: 'Barcode', value: asset.barcode },
                       { label: 'QR Code', value: asset.qrCode },
-                      { label: 'Magasin', value: asset.storeLocation },
-                      { label: 'Armoire', value: asset.cabinet },
+                      { label: 'Store', value: asset.storeLocation },
+                      { label: 'Cabinet', value: asset.cabinet },
                       { label: 'Rack', value: asset.rack },
-                      { label: 'Étage', value: asset.level },
+                      { label: 'Level', value: asset.level },
                       { label: 'Comment', value: asset.comment },
                     ] as Array<{ label: string; value: any }>
                   ).map((f) => (

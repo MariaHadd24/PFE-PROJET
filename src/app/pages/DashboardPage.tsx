@@ -6,9 +6,15 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Label,
+  LabelList,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
+  ReferenceLine,
+  Sector,
   Tooltip,
   XAxis,
   YAxis,
@@ -18,6 +24,7 @@ import {
   ArchiveX,
   BadgeCheck,
   Cog,
+  KeyRound,
   Laptop,
   Layers,
   Network,
@@ -30,6 +37,7 @@ import {
 
 import { useData } from '../context/DataContext';
 import type { Asset, AssetStatus } from '../types';
+import { formatMADCompact } from '../lib/money';
 
 type Chip = {
   label: string;
@@ -54,6 +62,24 @@ const PIE_COLORS = [
   'var(--chart-blue-5)',
   'var(--chart-3)',
 ];
+
+const END_OF_LIFE_YEARS = 5;
+
+function parseDateValue(value: unknown): Date | null {
+  const s = String(value ?? '').trim();
+  if (!s) return null;
+  const ms = Date.parse(s);
+  if (!Number.isNaN(ms)) return new Date(ms);
+  return null;
+}
+
+function isEndOfLifeByAge(dateOut: unknown): boolean {
+  const d = parseDateValue(dateOut);
+  if (!d) return false;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - END_OF_LIFE_YEARS);
+  return d.getTime() <= cutoff.getTime();
+}
 
 function norm(value: unknown): string {
   return String(value ?? '').trim().toLowerCase();
@@ -81,6 +107,158 @@ function countStatus(assets: Asset[], status: AssetStatus): number {
   return assets.reduce((acc, a) => (a.status === status ? acc + 1 : acc), 0);
 }
 
+function truncateLabel(input: unknown, max = 14): string {
+  const s = String(input ?? '').trim();
+  if (s.length <= max) return s;
+  return `${s.slice(0, Math.max(0, max - 1))}…`;
+}
+
+function CenterLabel({
+  title,
+  total,
+  subtitle,
+}: {
+  title: string;
+  total: number;
+  subtitle?: string;
+}) {
+  const hasSubtitle = Boolean(subtitle);
+  return (
+    <g>
+      {hasSubtitle ? (
+        <text
+          x="50%"
+          y="34%"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="var(--muted-foreground)"
+          fontWeight={800}
+          fontSize={11}
+        >
+          {subtitle}
+        </text>
+      ) : null}
+
+      <text
+        x="50%"
+        y={hasSubtitle ? '50%' : '48%'}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill="var(--foreground)"
+        fontWeight={900}
+        fontSize={22}
+      >
+        {total}
+      </text>
+
+      <text
+        x="50%"
+        y={hasSubtitle ? '66%' : '61%'}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill="var(--muted-foreground)"
+        fontWeight={700}
+        fontSize={11}
+      >
+        {title}
+      </text>
+    </g>
+  );
+}
+
+function renderActiveDonutSector(props: any) {
+  const outerRadius = Number(props?.outerRadius ?? 0);
+  return (
+    <Sector
+      {...props}
+      outerRadius={outerRadius + 7}
+      stroke="var(--background)"
+      strokeWidth={2}
+    />
+  );
+}
+
+function ChartGradient({ id, color }: { id: string; color: string }) {
+  return (
+    <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stopColor={`color-mix(in oklch, ${color} 92%, var(--background))`} />
+      <stop offset="100%" stopColor={`color-mix(in oklch, ${color} 62%, transparent)`} />
+    </linearGradient>
+  );
+}
+
+function averageValue(rows: Array<{ value?: unknown }>): number {
+  const values = rows
+    .map((r) => Number((r as any)?.value) || 0)
+    .filter((v) => Number.isFinite(v) && v > 0);
+  if (values.length === 0) return 0;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+function makeBarValuePercentLabel(total?: number, withPercent = true) {
+  return (props: any) => {
+    const value = Number(props?.value ?? 0);
+    const pct = withPercent && total && total > 0 ? Math.round((value / total) * 100) : null;
+
+    const x = Number(props?.x ?? 0) + Number(props?.width ?? 0) + 8;
+    const y = Number(props?.y ?? 0) + Number(props?.height ?? 0) / 2;
+
+    const text = pct != null ? `${value} (${pct}%)` : String(value);
+    return (
+      <text
+        x={x}
+        y={y}
+        dominantBaseline="middle"
+        textAnchor="start"
+        fill="var(--muted-foreground)"
+        fontSize={11}
+        fontWeight={800}
+      >
+        {text}
+      </text>
+    );
+  };
+}
+
+function TooltipCard({
+  label,
+  payload,
+  total,
+}: {
+  label?: any;
+  payload?: any[];
+  total?: number;
+}) {
+  const items = Array.isArray(payload) ? payload : [];
+  return (
+    <div className="rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
+      {label != null ? <div className="text-xs font-semibold text-muted-foreground">{String(label)}</div> : null}
+      <div className="mt-1 space-y-1">
+        {items
+          .filter((p) => p && (p.value != null || p.payload))
+          .map((p, idx) => {
+            const name = String(p?.name ?? p?.dataKey ?? '');
+            const value = Number(p?.value ?? 0);
+            const percent = total && total > 0 ? (value / total) * 100 : null;
+            const color = String(p?.color ?? 'var(--muted-foreground)');
+            return (
+              <div key={`${name}-${idx}`} className="flex items-center justify-between gap-3 text-xs">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="truncate font-semibold text-foreground">{name}</span>
+                </div>
+                <span className="shrink-0 font-black tabular-nums text-foreground">
+                  {value}
+                  {percent != null ? <span className="ml-2 text-muted-foreground">({Math.round(percent)}%)</span> : null}
+                </span>
+              </div>
+            );
+          })}
+      </div>
+    </div>
+  );
+}
+
 function buildCards(assets: Asset[]): CategoryCard[] {
   const rows = assets.map((asset) => {
     const key = norm(asset.assetTag) || norm(asset.serialNumber) || norm(asset.id);
@@ -96,6 +274,26 @@ function buildCards(assets: Asset[]): CategoryCard[] {
       seen.add(row.k);
     }
     return seen.size;
+  };
+  const countUniqueWithin = (baseKeys: string[], keys: string[]) => {
+    const seen = new Set<string>();
+    for (const row of rows) {
+      if (!row.k) continue;
+      if (!includesOne(row.h, baseKeys)) continue;
+      if (!includesOne(row.h, keys)) continue;
+      seen.add(row.k);
+    }
+    return seen.size;
+  };
+  const uniqueKeysWithin = (baseKeys: string[], keys: string[]) => {
+    const seen = new Set<string>();
+    for (const row of rows) {
+      if (!row.k) continue;
+      if (!includesOne(row.h, baseKeys)) continue;
+      if (!includesOne(row.h, keys)) continue;
+      seen.add(row.k);
+    }
+    return seen;
   };
   const accessPointsCount = (() => {
     // Assets IT's APs view effectively counts unique devices (deduped by identity),
@@ -209,18 +407,52 @@ function buildCards(assets: Asset[]): CategoryCard[] {
     return seen.size;
   })();
 
+  const kabaTotals = (() => {
+    const base = ['kaba', 'terminal ip', 'pointeuse', 'datamanager', 'data manager'];
+
+    const baseSet = uniqueKeysWithin(base, base);
+
+    const datamanagerSet = uniqueKeysWithin(base, ['datamanager', 'data manager', 'data-manager']);
+    const pointeuseSet = uniqueKeysWithin(base, ['terminal ip', 'pointeuse', 'pointeuse ip']);
+
+    const lecteurSet = new Set<string>();
+    for (const k of baseSet) {
+      if (datamanagerSet.has(k)) continue;
+      if (pointeuseSet.has(k)) continue;
+      lecteurSet.add(k);
+    }
+
+    return {
+      total: baseSet.size,
+      datamanager: datamanagerSet.size,
+      pointeuseIp: pointeuseSet.size,
+      lecteurKaba: lecteurSet.size,
+    };
+  })();
+
   return [
     {
       key: 'networking',
       title: 'Networking',
-      total: countUnique(['cisco', 'network', 'switch', 'router', 'access point', 'ap ', 'wifi', 'kaba', 'terminal ip']),
+      total: countUnique(['cisco', 'network', 'switch', 'router', 'access point', 'ap ', 'wifi']),
       chips: [
         { label: 'Access points', value: accessPointsCount },
         { label: 'Cisco', value: ciscoCount },
-        { label: 'Lecteurs Kaba', value: countUnique(['kaba', 'terminal ip']) },
       ],
       icon: Network,
       gradient: 'from-[#2D56FF] via-[#2850F2] to-[#2147DB]',
+    },
+    {
+      key: 'kaba',
+      title: 'Kaba',
+      total: kabaTotals.total,
+      chips: [
+        { label: 'Datamanager', value: kabaTotals.datamanager },
+        { label: 'Pointeuse IP', value: kabaTotals.pointeuseIp },
+        { label: 'Lecteur Kaba', value: kabaTotals.lecteurKaba },
+      ],
+      icon: KeyRound,
+      gradient: 'from-[#8B5CF6] via-[#7C3AED] to-[#6D28D9]',
     },
     {
       key: 'servers',
@@ -276,7 +508,7 @@ function buildCards(assets: Asset[]): CategoryCard[] {
         { label: 'AGV', value: countUnique(['agv']) },
       ],
       icon: Cog,
-      gradient: 'from-[#2644FF] via-[#213CE8] to-[#1A33CE]',
+      gradient: 'from-[#F97316] via-[#FB923C] to-[#EA580C]',
     },
   ];
 }
@@ -319,7 +551,7 @@ function DashboardCategoryCard({
       className={
         dimmed
           ? 'hidden'
-          : 'group relative min-w-0 flex-1 cursor-pointer overflow-hidden rounded-3xl p-4 text-white shadow-2xl ring-1 ring-white/20 transition-transform duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40'
+          : 'group relative min-w-[220px] flex-1 cursor-pointer overflow-hidden rounded-3xl p-5 text-white shadow-2xl ring-1 ring-white/20 transition-transform duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40'
       }
       initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
       animate={
@@ -395,12 +627,12 @@ function DashboardCategoryCard({
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md ring-1 ring-white/20 shadow-sm">
             <Icon className="h-5 w-5 opacity-95 drop-shadow-sm" />
           </div>
-          <div className="rounded-full bg-white/95 px-3 py-1 text-sm font-black tabular-nums text-slate-900 shadow-sm">
+          <div className="rounded-2xl bg-white/95 px-3.5 py-1.5 text-xs font-extrabold tracking-wide tabular-nums text-slate-900 shadow-sm ring-1 ring-white/40">
             {card.total}
           </div>
         </div>
 
-        <h2 className="text-xl xl:text-[28px] leading-[1.1] font-black tracking-tight drop-shadow-sm">
+        <h2 className="break-words text-lg xl:text-2xl leading-[1.05] font-black tracking-tight drop-shadow-sm">
           {card.title}
         </h2>
 
@@ -501,12 +733,40 @@ function DashboardCategoryCard({
                 if (label === 'AGV') return dedupeByKey(assets.filter((a) => hay(a).includes('agv')));
               }
 
-              if (k === 'networking') {
+              if (k === 'kaba') {
                 const hay = (a: Asset) => textOf(a);
-                if (label === 'Lecteurs Kaba') return dedupeByKey(assets.filter((a) => {
+                const isKaba = (a: Asset) => {
                   const h = hay(a);
-                  return h.includes('kaba') || h.includes('terminal ip');
-                }));
+                  return (
+                    h.includes('kaba') ||
+                    h.includes('terminal ip') ||
+                    h.includes('pointeuse') ||
+                    h.includes('datamanager') ||
+                    h.includes('data manager')
+                  );
+                };
+
+                const isDatamanager = (a: Asset) => {
+                  const h = hay(a);
+                  return h.includes('datamanager') || h.includes('data manager') || h.includes('data-manager');
+                };
+
+                const isPointeuse = (a: Asset) => {
+                  const h = hay(a);
+                  return h.includes('terminal ip') || h.includes('pointeuse') || h.includes('pointeuse ip');
+                };
+
+                if (label === 'Datamanager') {
+                  return dedupeByKey(assets.filter((a) => isKaba(a) && isDatamanager(a)));
+                }
+
+                if (label === 'Pointeuse IP') {
+                  return dedupeByKey(assets.filter((a) => isKaba(a) && isPointeuse(a)));
+                }
+
+                if (label === 'Lecteur Kaba') {
+                  return dedupeByKey(assets.filter((a) => isKaba(a) && !isDatamanager(a) && !isPointeuse(a)));
+                }
               }
 
               return [];
@@ -516,7 +776,7 @@ function DashboardCategoryCard({
               const viewFilter = { activeCategory: 'APs', searchTerm: '' };
               return (
                 <div key={chip.label} className="space-y-2">
-                  <div className="flex w-full items-center justify-between gap-3 rounded-full bg-white/10 px-3 py-1 backdrop-blur-md ring-1 ring-white/15 shadow-sm">
+                  <div className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-2 backdrop-blur-md ring-1 ring-white/15 shadow-sm">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -527,7 +787,7 @@ function DashboardCategoryCard({
                       aria-expanded={isApOpen}
                     >
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/70" />
-                      <span className="truncate text-[13px] font-semibold leading-snug text-white/95">{chip.label}</span>
+                      <span className="truncate text-[13px] font-semibold leading-snug tracking-tight text-white/95">{chip.label}</span>
                     </button>
 
                     <div className="inline-flex items-center gap-2">
@@ -538,12 +798,12 @@ function DashboardCategoryCard({
                             e.stopPropagation();
                             goToStockInventory(viewFilter);
                           }}
-                          className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white/90 ring-1 ring-white/20"
+                          className="rounded-xl bg-white/10 px-2.5 py-1 text-[11px] font-bold tracking-tight text-white/90 ring-1 ring-white/20"
                         >
                           View
                         </button>
                       ) : null}
-                      <span className="inline-flex min-w-9 items-center justify-center rounded-full bg-white/95 px-2.5 py-0.5 text-[11px] font-black tabular-nums text-slate-900 shadow-sm">
+                      <span className="inline-flex min-w-9 items-center justify-center rounded-xl bg-white/95 px-3 py-1 text-[11px] font-extrabold tracking-tight tabular-nums text-slate-900 shadow-sm">
                         {chip.value}
                       </span>
                     </div>
@@ -558,7 +818,7 @@ function DashboardCategoryCard({
               const viewFilter = { activeCategory: 'Cisco', searchTerm: '' };
               return (
                 <div key={chip.label} className="space-y-2">
-                  <div className="flex w-full items-center justify-between gap-3 rounded-full bg-white/10 px-3 py-1 backdrop-blur-md ring-1 ring-white/15 shadow-sm">
+                  <div className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-2 backdrop-blur-md ring-1 ring-white/15 shadow-sm">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -569,7 +829,7 @@ function DashboardCategoryCard({
                       aria-expanded={isCiscoOpen}
                     >
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/70" />
-                      <span className="truncate text-[13px] font-semibold leading-snug text-white/95">{chip.label}</span>
+                      <span className="truncate text-[13px] font-semibold leading-snug tracking-tight text-white/95">{chip.label}</span>
                     </button>
 
                     <div className="inline-flex items-center gap-2">
@@ -580,12 +840,12 @@ function DashboardCategoryCard({
                             e.stopPropagation();
                             goToStockInventory(viewFilter);
                           }}
-                          className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white/90 ring-1 ring-white/20"
+                          className="rounded-xl bg-white/10 px-2.5 py-1 text-[11px] font-bold tracking-tight text-white/90 ring-1 ring-white/20"
                         >
                           View
                         </button>
                       ) : null}
-                      <span className="inline-flex min-w-9 items-center justify-center rounded-full bg-white/95 px-2.5 py-0.5 text-[11px] font-black tabular-nums text-slate-900 shadow-sm">
+                      <span className="inline-flex min-w-9 items-center justify-center rounded-xl bg-white/95 px-3 py-1 text-[11px] font-extrabold tracking-tight tabular-nums text-slate-900 shadow-sm">
                         {chip.value}
                       </span>
                     </div>
@@ -600,7 +860,7 @@ function DashboardCategoryCard({
               const viewFilter = { activeCategory: 'Scanners', searchTerm: '' };
               return (
                 <div key={chip.label} className="space-y-2">
-                  <div className="flex w-full items-center justify-between gap-3 rounded-full bg-white/10 px-3 py-1 backdrop-blur-md ring-1 ring-white/15 shadow-sm">
+                  <div className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-2 backdrop-blur-md ring-1 ring-white/15 shadow-sm">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -611,7 +871,7 @@ function DashboardCategoryCard({
                       aria-expanded={isScannersOpen}
                     >
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/70" />
-                      <span className="truncate text-[13px] font-semibold leading-snug text-white/95">{chip.label}</span>
+                      <span className="truncate text-[13px] font-semibold leading-snug tracking-tight text-white/95">{chip.label}</span>
                     </button>
 
                     <div className="inline-flex items-center gap-2">
@@ -622,12 +882,12 @@ function DashboardCategoryCard({
                             e.stopPropagation();
                             goToStockInventory(viewFilter);
                           }}
-                          className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white/90 ring-1 ring-white/20"
+                          className="rounded-xl bg-white/10 px-2.5 py-1 text-[11px] font-bold tracking-tight text-white/90 ring-1 ring-white/20"
                         >
                           View
                         </button>
                       ) : null}
-                      <span className="inline-flex min-w-9 items-center justify-center rounded-full bg-white/95 px-2.5 py-0.5 text-[11px] font-black tabular-nums text-slate-900 shadow-sm">
+                      <span className="inline-flex min-w-9 items-center justify-center rounded-xl bg-white/95 px-3 py-1 text-[11px] font-extrabold tracking-tight tabular-nums text-slate-900 shadow-sm">
                         {chip.value}
                       </span>
                     </div>
@@ -672,8 +932,10 @@ function DashboardCategoryCard({
                   if (label === 'AGV') return { activeCategory: '', searchTerm: 'agv' };
                 }
 
-                if (k === 'networking') {
-                  if (label === 'Lecteurs Kaba') return { activeCategory: 'Kaba', searchTerm: '' };
+                if (k === 'kaba') {
+                  if (label === 'Datamanager') return { activeCategory: 'Kaba', searchTerm: 'datamanager' };
+                  if (label === 'Pointeuse IP') return { activeCategory: 'Kaba', searchTerm: 'terminal ip' };
+                  if (label === 'Lecteur Kaba') return { activeCategory: 'Kaba', searchTerm: 'kaba' };
                 }
 
                 return { activeCategory: '', searchTerm: '' };
@@ -681,7 +943,7 @@ function DashboardCategoryCard({
 
               return (
                 <div key={chip.label} className="space-y-2">
-                  <div className="flex w-full items-center justify-between gap-3 rounded-full bg-white/10 px-3 py-1 backdrop-blur-md ring-1 ring-white/15 shadow-sm">
+                  <div className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-2 backdrop-blur-md ring-1 ring-white/15 shadow-sm">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -692,7 +954,7 @@ function DashboardCategoryCard({
                       aria-expanded={genericOpen}
                     >
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/70" />
-                      <span className="truncate text-[13px] font-semibold leading-snug text-white/95">{chip.label}</span>
+                      <span className="truncate text-[13px] font-semibold leading-snug tracking-tight text-white/95">{chip.label}</span>
                     </button>
 
                     <div className="inline-flex items-center gap-2">
@@ -703,12 +965,12 @@ function DashboardCategoryCard({
                             e.stopPropagation();
                             goToStockInventory(viewFilter);
                           }}
-                          className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white/90 ring-1 ring-white/20"
+                          className="rounded-xl bg-white/10 px-2.5 py-1 text-[11px] font-bold tracking-tight text-white/90 ring-1 ring-white/20"
                         >
                           View
                         </button>
                       ) : null}
-                      <span className="inline-flex min-w-9 items-center justify-center rounded-full bg-white/95 px-2.5 py-0.5 text-[11px] font-black tabular-nums text-slate-900 shadow-sm">
+                      <span className="inline-flex min-w-9 items-center justify-center rounded-xl bg-white/95 px-3 py-1 text-[11px] font-extrabold tracking-tight tabular-nums text-slate-900 shadow-sm">
                         {chip.value}
                       </span>
                     </div>
@@ -722,13 +984,13 @@ function DashboardCategoryCard({
             return (
               <div
                 key={chip.label}
-                className="flex items-center justify-between gap-3 rounded-full bg-white/10 px-3 py-1.5 backdrop-blur-md ring-1 ring-white/15 shadow-sm"
+                className="flex items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-2 backdrop-blur-md ring-1 ring-white/15 shadow-sm"
               >
-                <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold leading-snug text-white/95">
+                <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold leading-snug tracking-tight text-white/95">
                   <span className="h-1.5 w-1.5 rounded-full bg-white/70" />
                   <span className="truncate">{chip.label}</span>
                 </span>
-                <span className="inline-flex min-w-9 items-center justify-center rounded-full bg-white/95 px-2.5 py-0.5 text-xs font-black tabular-nums text-slate-900 shadow-sm">
+                <span className="inline-flex min-w-9 items-center justify-center rounded-xl bg-white/95 px-3 py-1 text-xs font-extrabold tracking-tight tabular-nums text-slate-900 shadow-sm">
                   {chip.value}
                 </span>
               </div>
@@ -1259,47 +1521,103 @@ function StatCard({
   color,
   icon,
   order,
+  variant = 'default',
 }: {
   title: string;
-  value: number;
+  value: number | string;
   color: string;
   icon: React.ComponentType<{ className?: string }>;
   order: number;
+  variant?: 'default' | 'admin';
 }) {
   const Icon = icon;
   const shouldReduceMotion = useReducedMotion();
 
+  const displayValue = typeof value === 'number' ? value.toLocaleString() : value;
+  const valueClass = typeof value === 'number' ? 'tabular-nums' : '';
+  const valueSizeClass = (() => {
+    if (typeof value === 'number') return 'text-4xl';
+    const len = String(value ?? '').length;
+    return len > 10 ? 'text-3xl' : 'text-4xl';
+  })();
+
+  const isAdmin = variant === 'admin';
+  const cardClassName =
+    'premium-surface rounded-3xl transition-shadow duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ' +
+    (isAdmin ? 'min-h-[96px] p-4' : 'min-h-[104px] p-4');
+
+  const iconStyle = isAdmin
+    ? {
+        background:
+          `linear-gradient(135deg, color-mix(in oklch, ${color} 16%, transparent), color-mix(in oklch, ${color} 36%, transparent))`,
+        color,
+      }
+    : {
+        background:
+          `linear-gradient(135deg, color-mix(in oklch, ${color} 92%, var(--background)), color-mix(in oklch, ${color} 72%, var(--background)))`,
+      };
+
+  const haloStyle = isAdmin
+    ? undefined
+    : ({
+        background:
+          `radial-gradient(900px circle at 85% 10%, color-mix(in oklch, ${color} 22%, transparent), transparent 60%),
+           radial-gradient(900px circle at 10% 90%, color-mix(in oklch, ${color} 12%, transparent), transparent 55%)`,
+      } as React.CSSProperties);
+
+  const toplineStyle = ({
+    background:
+      `linear-gradient(to right, transparent, color-mix(in oklch, ${color} 34%, transparent), color-mix(in oklch, ${color} 18%, transparent), transparent)`,
+  } as React.CSSProperties);
+
   return (
     <motion.div
-      initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+      initial={shouldReduceMotion ? { opacity: 1, y: 0  } : { opacity: 0, y: 10 }}
       animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
       transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: Math.min(order * 0.05, 0.25) }}
-      whileHover={shouldReduceMotion ? undefined : { y: -2 }}
-      className="group premium-surface rounded-3xl p-5 transition-shadow duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      whileHover={shouldReduceMotion ? undefined : { y: -1 }}
+      className={cardClassName}
       tabIndex={0}
     >
-      <div className="absolute inset-0 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100" aria-hidden>
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.22) 45%, rgba(255,255,255,0) 70%)',
-          }}
-        />
-      </div>
+      {!isAdmin ? (
+        <>
+          <div className="pointer-events-none absolute inset-0" style={haloStyle} aria-hidden />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5" style={toplineStyle} aria-hidden />
+        </>
+      ) : null}
 
-      <div className="relative flex items-center justify-between gap-4">
+      <div className="relative flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-semibold tracking-wide text-muted-foreground">{title}</p>
-          <p className="mt-1 text-4xl font-black tabular-nums tracking-tight" style={{ color }}>
-            {value}
+          <div className="flex items-center gap-2">
+            <span
+              className={"h-1.5 w-1.5 shrink-0 rounded-full " + (isAdmin ? '' : 'opacity-70')}
+              style={{ backgroundColor: color }}
+              aria-hidden
+            />
+            <p
+              className={
+                'text-[12px] font-semibold leading-none text-muted-foreground ' +
+                (isAdmin ? 'tracking-[0.04em]' : 'tracking-[0.06em]')
+              }
+            >
+              {title}
+            </p>
+          </div>
+          <p
+            className={"mt-1.5 whitespace-nowrap font-black leading-none tracking-tight " + valueSizeClass + ' ' + valueClass}
+            style={isAdmin ? undefined : { color }}
+          >
+            {displayValue}
           </p>
         </div>
         <div
-          className="relative inline-flex h-14 w-14 items-center justify-center rounded-2xl text-primary-foreground shadow-sm ring-1 ring-white/30"
-          style={{ backgroundColor: color }}
+          className={
+            'relative mt-0.5 inline-flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ring-1 ring-black/5 dark:ring-white/20 ' +
+            (isAdmin ? 'text-current' : 'text-primary-foreground')
+          }
+          style={iconStyle}
         >
-          <Icon className="h-7 w-7 drop-shadow-sm" />
+          <Icon className="h-6 w-6 drop-shadow-sm text-current" />
         </div>
       </div>
     </motion.div>
@@ -1307,12 +1625,15 @@ function StatCard({
 }
 
 export function DashboardPage() {
-  const { assets, maintenanceTickets, purchaseRequests } = useData();
+  const { assets, maintenanceTickets, purchaseRequests, purchaseOrders, users, sites, categories, suppliers, departments } = useData();
   const cards = useMemo(() => buildCards(assets), [assets]);
 
   const shouldReduceMotion = useReducedMotion();
 
   const [lockedCardKey, setLockedCardKey] = useState<string | null>(null);
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState<number | null>(null);
+  const [activeStatusIndex, setActiveStatusIndex] = useState<number | null>(null);
+  const [activeLifecycleIndex, setActiveLifecycleIndex] = useState<number | null>(null);
 
   const expandedKey = lockedCardKey;
   const isAnyExpanded = Boolean(expandedKey);
@@ -1332,6 +1653,71 @@ export function DashboardPage() {
       retired: countStatus(assets, 'Retired'),
     };
   }, [assets]);
+
+  const extraStats = useMemo(() => {
+    const normalizeStatus = (value: unknown) => String(value ?? '').trim().toLowerCase();
+
+    const eolByAge = assets.reduce((acc, a) => {
+      if (a.status === 'Retired') return acc;
+      return isEndOfLifeByAge((a as any)?.dateOut) ? acc + 1 : acc;
+    }, 0);
+
+    const ticketsTotal = maintenanceTickets.length;
+    const ticketsOpen = maintenanceTickets.reduce((acc, t) => {
+      const s = normalizeStatus((t as any)?.status);
+      if (!s) return acc + 1;
+      const closed =
+        s.includes('closed') ||
+        s.includes('done') ||
+        s.includes('resolved') ||
+        s.includes('completed') ||
+        s.includes('finish') ||
+        s.includes('cancel');
+      return closed ? acc : acc + 1;
+    }, 0);
+
+    const requestsTotal = purchaseRequests.length;
+    const requestsPending = purchaseRequests.reduce((acc, r) => {
+      const s = normalizeStatus((r as any)?.status);
+      if (!s) return acc + 1;
+      const pending =
+        s.includes('pending') ||
+        s.includes('await') ||
+        s.includes('waiting') ||
+        s.includes('to approve') ||
+        s.includes('approval') ||
+        s.includes('new') ||
+        s.includes('open');
+      const final = s.includes('approved') || s.includes('rejected') || s.includes('ordered') || s.includes('completed') || s.includes('cancel');
+      if (final) return acc;
+      return pending ? acc + 1 : acc + 1;
+    }, 0);
+
+    return {
+      eolByAge,
+      ticketsTotal,
+      ticketsOpen,
+      requestsTotal,
+      requestsPending,
+    };
+  }, [assets, maintenanceTickets, purchaseRequests]);
+
+  const adminCounts = useMemo(() => {
+    const roleSet = new Set<string>();
+    for (const u of users) {
+      const r = String((u as any)?.role ?? '').trim();
+      if (r) roleSet.add(r);
+    }
+
+    return {
+      users: users.length,
+      roles: roleSet.size,
+      sites: sites.length,
+      categories: categories.length,
+      suppliers: suppliers.length,
+      departments: departments.length,
+    };
+  }, [categories.length, departments.length, sites.length, suppliers.length, users]);
 
   const formatPercent = (pct: number) => `${Math.round(pct)}%`;
 
@@ -1354,6 +1740,23 @@ export function DashboardPage() {
 
   const categoryChartTotal = useMemo(() => {
     return categoryChartData.reduce((acc, entry) => acc + (Number(entry.value) || 0), 0);
+  }, [categoryChartData]);
+
+  const categoryDonutData = useMemo(() => {
+    const sorted = categoryChartData
+      .map((e) => ({ name: String(e.name), value: Number((e as any).value) || 0 }))
+      .filter((e) => e.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    const top = sorted.slice(0, 8);
+    const rest = sorted.slice(top.length);
+    const restValue = rest.reduce((acc, e) => acc + e.value, 0);
+
+    const withOthers = restValue > 0 ? [...top, { name: 'Others', value: restValue }] : top;
+    return withOthers.map((e, index) => ({
+      ...e,
+      color: PIE_COLORS[index % PIE_COLORS.length],
+    }));
   }, [categoryChartData]);
 
   const statusChartData = useMemo(() => {
@@ -1380,6 +1783,14 @@ export function DashboardPage() {
       .sort((a, b) => b.value - a.value);
   }, [maintenanceTickets]);
 
+  const maintenanceChartTotal = useMemo(() => {
+    return maintenanceChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [maintenanceChartData]);
+
+  const maintenanceChartAvg = useMemo(() => {
+    return averageValue(maintenanceChartData as any);
+  }, [maintenanceChartData]);
+
   const purchaseChartData = useMemo(() => {
     const byStatus = new Map<string, number>();
     for (const p of purchaseRequests) {
@@ -1390,6 +1801,257 @@ export function DashboardPage() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
   }, [purchaseRequests]);
+
+  const purchaseChartTotal = useMemo(() => {
+    return purchaseChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [purchaseChartData]);
+
+  const purchaseChartAvg = useMemo(() => {
+    return averageValue(purchaseChartData as any);
+  }, [purchaseChartData]);
+
+  const departmentChartData = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of assets) {
+      const key = String(a.department ?? '').trim() || 'Unknown';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [assets]);
+
+  const siteChartData = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of assets) {
+      const key = String((a as any)?.site ?? '').trim() || 'Unknown';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [assets]);
+
+  const siteChartTotal = useMemo(() => {
+    return siteChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [siteChartData]);
+
+  const siteChartAvg = useMemo(() => {
+    return averageValue(siteChartData as any);
+  }, [siteChartData]);
+
+  const assetAgeChartData = useMemo(() => {
+    const now = new Date();
+    const buckets = [
+      { name: '0–1y', value: 0 },
+      { name: '1–2y', value: 0 },
+      { name: '2–3y', value: 0 },
+      { name: '3–5y', value: 0 },
+      { name: '5y+', value: 0 },
+    ];
+
+    for (const a of assets) {
+      const d = parseDateValue((a as any)?.acquisitionDate);
+      if (!d) continue;
+      const years = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      if (years < 1) buckets[0].value += 1;
+      else if (years < 2) buckets[1].value += 1;
+      else if (years < 3) buckets[2].value += 1;
+      else if (years < 5) buckets[3].value += 1;
+      else buckets[4].value += 1;
+    }
+
+    return buckets;
+  }, [assets]);
+
+  const assetAgeChartTotal = useMemo(() => {
+    return assetAgeChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [assetAgeChartData]);
+
+  const assetAgeChartAvg = useMemo(() => {
+    return averageValue(assetAgeChartData as any);
+  }, [assetAgeChartData]);
+
+  const warrantyChartData = useMemo(() => {
+    const now = new Date();
+    const buckets = [
+      { name: 'Expired', value: 0 },
+      { name: '0–30d', value: 0 },
+      { name: '31–60d', value: 0 },
+      { name: '61–90d', value: 0 },
+      { name: '90d+', value: 0 },
+    ];
+
+    const dayDiff = (d: Date) => Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    for (const a of assets) {
+      const d = parseDateValue((a as any)?.warrantyEndDate);
+      if (!d) continue;
+      const days = dayDiff(d);
+      if (days < 0) buckets[0].value += 1;
+      else if (days <= 30) buckets[1].value += 1;
+      else if (days <= 60) buckets[2].value += 1;
+      else if (days <= 90) buckets[3].value += 1;
+      else buckets[4].value += 1;
+    }
+
+    return buckets;
+  }, [assets]);
+
+  const warrantyChartTotal = useMemo(() => {
+    return warrantyChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [warrantyChartData]);
+
+  const warrantyChartAvg = useMemo(() => {
+    return averageValue(warrantyChartData as any);
+  }, [warrantyChartData]);
+
+  const maintenanceCostByProviderChartData = useMemo(() => {
+    const byProvider = new Map<string, number>();
+    for (const t of maintenanceTickets) {
+      const key = String((t as any)?.provider ?? '').trim() || 'Unknown';
+      byProvider.set(key, (byProvider.get(key) ?? 0) + (Number((t as any)?.cost) || 0));
+    }
+
+    return Array.from(byProvider.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [maintenanceTickets]);
+
+  const maintenanceCostByProviderTotal = useMemo(() => {
+    return maintenanceCostByProviderChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [maintenanceCostByProviderChartData]);
+
+  const maintenanceCostByProviderAvg = useMemo(() => {
+    return averageValue(maintenanceCostByProviderChartData as any);
+  }, [maintenanceCostByProviderChartData]);
+
+  const purchaseBudgetByDepartmentChartData = useMemo(() => {
+    const byDept = new Map<string, number>();
+    for (const r of purchaseRequests) {
+      const key = String((r as any)?.department ?? '').trim() || 'Unknown';
+      byDept.set(key, (byDept.get(key) ?? 0) + (Number((r as any)?.budget) || 0));
+    }
+    return Array.from(byDept.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [purchaseRequests]);
+
+  const purchaseBudgetByDepartmentTotal = useMemo(() => {
+    return purchaseBudgetByDepartmentChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [purchaseBudgetByDepartmentChartData]);
+
+  const purchaseBudgetByDepartmentAvg = useMemo(() => {
+    return averageValue(purchaseBudgetByDepartmentChartData as any);
+  }, [purchaseBudgetByDepartmentChartData]);
+
+  const activityTrendData = useMemo(() => {
+    const now = new Date();
+    const months: { key: string; start: Date }[] = [];
+    for (let i = 5; i >= 0; i -= 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.push({ key, start: d });
+    }
+
+    const byKey = new Map<string, { month: string; tickets: number; requests: number }>();
+    for (const m of months) byKey.set(m.key, { month: m.key, tickets: 0, requests: 0 });
+
+    const keyFor = (value: unknown) => {
+      const d = parseDateValue(value);
+      if (!d) return null;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    for (const t of maintenanceTickets) {
+      const k = keyFor((t as any)?.openDate);
+      if (!k) continue;
+      const row = byKey.get(k);
+      if (row) row.tickets += 1;
+    }
+
+    for (const r of purchaseRequests) {
+      const k = keyFor((r as any)?.createdDate);
+      if (!k) continue;
+      const row = byKey.get(k);
+      if (row) row.requests += 1;
+    }
+
+    return months.map((m) => byKey.get(m.key)!).filter(Boolean);
+  }, [maintenanceTickets, purchaseRequests]);
+
+  const activityTrendTotals = useMemo(() => {
+    const t = activityTrendData.reduce((acc, row) => acc + (Number((row as any)?.tickets) || 0), 0);
+    const r = activityTrendData.reduce((acc, row) => acc + (Number((row as any)?.requests) || 0), 0);
+    return { tickets: t, requests: r };
+  }, [activityTrendData]);
+
+  const supplierChartData = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of assets) {
+      const raw = String(a.supplier ?? '').trim();
+      const key = raw || 'Unknown';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [assets]);
+
+  const departmentChartTotal = useMemo(() => {
+    return departmentChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [departmentChartData]);
+
+  const departmentChartAvg = useMemo(() => {
+    return averageValue(departmentChartData as any);
+  }, [departmentChartData]);
+
+  const supplierChartTotal = useMemo(() => {
+    return supplierChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
+  }, [supplierChartData]);
+
+  const supplierChartAvg = useMemo(() => {
+    return averageValue(supplierChartData as any);
+  }, [supplierChartData]);
+
+  const lifecycleChartData = useMemo(() => {
+    const retired = totals.retired;
+    const eol = extraStats.eolByAge;
+    const ok = Math.max(0, totals.total - retired - eol);
+
+    return [
+      { name: 'OK', value: ok, color: 'var(--chart-2)' },
+      { name: `EOL (>${END_OF_LIFE_YEARS}y)`, value: eol, color: 'var(--chart-1)' },
+      { name: 'Retired', value: retired, color: 'var(--destructive)' },
+    ];
+  }, [extraStats.eolByAge, totals.retired, totals.total]);
+
+  const lifecycleChartTotal = useMemo(() => {
+    return lifecycleChartData.reduce((acc, entry) => acc + (Number(entry.value) || 0), 0);
+  }, [lifecycleChartData]);
+
+  const activeCategory = activeCategoryIndex != null ? categoryDonutData[activeCategoryIndex] : null;
+  const categoryCenterTitle = activeCategory ? truncateLabel(activeCategory.name, 16) : 'TOTAL';
+  const categoryCenterTotal = activeCategory ? Number((activeCategory as any).value || 0) : categoryChartTotal;
+  const categoryCenterSubtitle =
+    activeCategory && categoryChartTotal > 0 ? formatPercent((categoryCenterTotal / categoryChartTotal) * 100) : undefined;
+
+  const activeStatus = activeStatusIndex != null ? statusChartData[activeStatusIndex] : null;
+  const statusCenterTitle = activeStatus ? truncateLabel(activeStatus.name, 16) : 'TOTAL';
+  const statusCenterTotal = activeStatus ? Number((activeStatus as any).value || 0) : statusChartTotal;
+  const statusCenterSubtitle =
+    activeStatus && statusChartTotal > 0 ? formatPercent((statusCenterTotal / statusChartTotal) * 100) : undefined;
+
+  const activeLifecycle = activeLifecycleIndex != null ? lifecycleChartData[activeLifecycleIndex] : null;
+  const lifecycleCenterTitle = activeLifecycle ? truncateLabel(activeLifecycle.name, 16) : 'TOTAL';
+  const lifecycleCenterTotal = activeLifecycle ? Number((activeLifecycle as any).value || 0) : lifecycleChartTotal;
+  const lifecycleCenterSubtitle =
+    activeLifecycle && lifecycleChartTotal > 0 ? formatPercent((lifecycleCenterTotal / lifecycleChartTotal) * 100) : undefined;
 
   return (
     <div className="relative p-4 sm:p-6 lg:p-8">
@@ -1412,11 +2074,61 @@ export function DashboardPage() {
         initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
         animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
         transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut' }}
-        className="mb-8 flex flex-wrap items-end justify-between gap-4"
+        className="premium-surface relative mb-8 flex flex-col gap-3 overflow-hidden px-6 py-5 sm:flex-row sm:items-end sm:justify-between"
       >
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-sm font-semibold text-muted-foreground">Vue d’ensemble des actifs, tickets et demandes</p>
+        <div className="min-w-0">
+          <div className="page-hero__topline" aria-hidden />
+          <div className="flex items-start gap-4">
+            <div
+              className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-primary ring-1 ring-primary/15 shadow-sm"
+              style={{
+                background:
+                  'linear-gradient(135deg, color-mix(in oklch, var(--primary) 16%, transparent), color-mix(in oklch, var(--chart-blue-5) 24%, transparent))',
+              }}
+              aria-hidden
+            >
+              <Layers className="h-[18px] w-[18px]" />
+            </div>
+
+            <div className="min-w-0">
+              <h1 className="text-2xl font-extrabold tracking-tight leading-[1.02] text-foreground sm:text-3xl lg:text-4xl">
+                <span className="relative inline-block">
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 bg-clip-text text-transparent blur-[12px] opacity-45"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(90deg, var(--primary), var(--chart-blue-5), color-mix(in oklch, var(--foreground) 82%, var(--primary)))',
+                    }}
+                  >
+                    Dashboard
+                  </span>
+                  <span
+                    className="relative bg-clip-text text-transparent"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(90deg, var(--primary), var(--chart-blue-5), color-mix(in oklch, var(--foreground) 82%, var(--primary)))',
+                    }}
+                  >
+                    Dashboard
+                  </span>
+                </span>
+              </h1>
+
+              <div
+                className="mt-2 h-1 w-24 rounded-full"
+                style={{
+                  background:
+                    'linear-gradient(90deg, var(--primary), var(--chart-blue-5), transparent)',
+                }}
+                aria-hidden
+              />
+
+              <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Overview of assets, tickets, and requests
+              </p>
+            </div>
+          </div>
         </div>
       </motion.div>
 
@@ -1439,7 +2151,30 @@ export function DashboardPage() {
         <StatCard title="Assigned" value={totals.assigned} color="var(--chart-blue-1)" icon={UserRoundCheck} order={2} />
         <StatCard title="In Repair" value={totals.inRepair} color="var(--chart-4)" icon={Wrench} order={3} />
         <StatCard title="Retired" value={totals.retired} color="var(--destructive)" icon={ArchiveX} order={4} />
+        <StatCard title={`EOL (>${END_OF_LIFE_YEARS}y)`} value={extraStats.eolByAge} color="var(--chart-1)" icon={AlertTriangle} order={5} />
+        <StatCard title="Maintenance Tickets" value={extraStats.ticketsTotal} color="var(--chart-blue-5)" icon={Wrench} order={6} />
+        <StatCard title="Open Tickets" value={extraStats.ticketsOpen} color="var(--chart-4)" icon={AlertTriangle} order={7} />
+        <StatCard title="Purchase Requests" value={extraStats.requestsTotal} color="var(--chart-blue-1)" icon={Cog} order={8} />
+        <StatCard title="Pending Requests" value={extraStats.requestsPending} color="var(--primary)" icon={Cog} order={9} />
       </div>
+
+      <section className="premium-surface mb-8 rounded-3xl p-5">
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-base font-extrabold tracking-tight text-foreground">Administration</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Reference data overview</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-6">
+          <StatCard title="Users" value={adminCounts.users} color="var(--chart-blue-10)" icon={UserRoundCheck} order={0} variant="admin" />
+          <StatCard title="Roles" value={adminCounts.roles} color="var(--chart-blue-5)" icon={KeyRound} order={1} variant="admin" />
+          <StatCard title="Sites" value={adminCounts.sites} color="var(--chart-2)" icon={Network} order={2} variant="admin" />
+          <StatCard title="Categories" value={adminCounts.categories} color="var(--primary)" icon={Layers} order={3} variant="admin" />
+          <StatCard title="Suppliers" value={adminCounts.suppliers} color="var(--chart-4)" icon={PhoneCall} order={4} variant="admin" />
+          <StatCard title="Departments" value={adminCounts.departments} color="var(--chart-blue-1)" icon={Server} order={5} variant="admin" />
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2 xl:grid-cols-4">
         <motion.section
@@ -1454,7 +2189,7 @@ export function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={categoryChartData}
+                    data={categoryDonutData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -1464,19 +2199,28 @@ export function DashboardPage() {
                     paddingAngle={2}
                     labelLine={false}
                     label={false}
+                    activeIndex={activeCategoryIndex ?? undefined}
+                    activeShape={renderActiveDonutSector}
+                    onMouseEnter={(_, index) => setActiveCategoryIndex(index)}
+                    onMouseLeave={() => setActiveCategoryIndex(null)}
+                    isAnimationActive={!shouldReduceMotion}
                   >
-                    {categoryChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    {categoryDonutData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={String((entry as any).color ?? PIE_COLORS[index % PIE_COLORS.length])} />
                     ))}
+                    <Label
+                      content={() => (
+                        <CenterLabel
+                          title={categoryCenterTitle}
+                          total={categoryCenterTotal}
+                          subtitle={categoryCenterSubtitle}
+                        />
+                      )}
+                      position="center"
+                    />
                   </Pie>
                   <Tooltip
-                    formatter={makePieTooltipFormatter(categoryChartTotal)}
-                    contentStyle={{
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 14,
-                    }}
-                    labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 700 }}
+                    content={({ payload }) => <TooltipCard payload={payload as any[]} total={categoryChartTotal} />}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -1484,10 +2228,10 @@ export function DashboardPage() {
 
             <div className="h-28 min-h-0 w-full shrink-0 overflow-auto pr-1">
               <div className="space-y-1">
-                {categoryChartData.map((entry, index) => {
+                {categoryDonutData.map((entry, index) => {
                   const value = Number(entry.value) || 0;
                   const percent = categoryChartTotal > 0 ? (value / categoryChartTotal) * 100 : 0;
-                  const color = PIE_COLORS[index % PIE_COLORS.length];
+                  const color = String((entry as any).color ?? PIE_COLORS[index % PIE_COLORS.length]);
 
                   return (
                     <div key={String(entry.name)} className="flex items-center justify-between gap-2 rounded-xl px-1.5 py-1">
@@ -1529,19 +2273,28 @@ export function DashboardPage() {
                     paddingAngle={2}
                     labelLine={false}
                     label={false}
+                    activeIndex={activeStatusIndex ?? undefined}
+                    activeShape={renderActiveDonutSector}
+                    onMouseEnter={(_, index) => setActiveStatusIndex(index)}
+                    onMouseLeave={() => setActiveStatusIndex(null)}
+                    isAnimationActive={!shouldReduceMotion}
                   >
                     {statusChartData.map((entry) => (
                       <Cell key={`cell-${entry.name}`} fill={entry.color} />
                     ))}
+                    <Label
+                      content={() => (
+                        <CenterLabel
+                          title={statusCenterTitle}
+                          total={statusCenterTotal}
+                          subtitle={statusCenterSubtitle}
+                        />
+                      )}
+                      position="center"
+                    />
                   </Pie>
                   <Tooltip
-                    formatter={makePieTooltipFormatter(statusChartTotal)}
-                    contentStyle={{
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 14,
-                    }}
-                    labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 700 }}
+                    content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={statusChartTotal} />}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -1585,19 +2338,44 @@ export function DashboardPage() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={maintenanceChartData}>
+                <BarChart data={maintenanceChartData} layout="vertical" margin={{ left: 12, right: 64, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-maint" color="var(--chart-blue-2)" />
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="name" tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }} />
-                  <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 14,
-                    }}
-                    labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 700 }}
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
                   />
-                  <Bar dataKey="value" fill="var(--chart-blue-2)" radius={[10, 10, 10, 10]} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={140}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(v) => truncateLabel(v, 14)}
+                  />
+                  {maintenanceChartAvg > 0 ? (
+                    <ReferenceLine x={maintenanceChartAvg} stroke="var(--muted-foreground)" strokeOpacity={0.45} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip
+                    content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={maintenanceChartTotal} />}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-maint)"
+                    stroke="var(--chart-blue-2)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 10, 10]}
+                    barSize={18}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 35%, transparent)', radius: 10 }}
+                  >
+                    <LabelList dataKey="value" content={makeBarValuePercentLabel(maintenanceChartTotal, true)} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -1618,22 +2396,567 @@ export function DashboardPage() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={purchaseChartData}>
+                <BarChart data={purchaseChartData} layout="vertical" margin={{ left: 12, right: 64, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-purchase" color="var(--chart-2)" />
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="name" tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }} />
-                  <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 600 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 14,
-                    }}
-                    labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 700 }}
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
                   />
-                  <Bar dataKey="value" fill="var(--chart-2)" radius={[10, 10, 10, 10]} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={140}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(v) => truncateLabel(v, 14)}
+                  />
+                  {purchaseChartAvg > 0 ? (
+                    <ReferenceLine x={purchaseChartAvg} stroke="var(--muted-foreground)" strokeOpacity={0.45} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip
+                    content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={purchaseChartTotal} />}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-purchase)"
+                    stroke="var(--chart-2)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 10, 10]}
+                    barSize={18}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 35%, transparent)', radius: 10 }}
+                  >
+                    <LabelList dataKey="value" content={makeBarValuePercentLabel(purchaseChartTotal, true)} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.17 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Top Departments</h2>
+          <div className="mt-4 h-64">
+            {departmentChartData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                No data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={departmentChartData} layout="vertical" margin={{ left: 12, right: 48, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-dept" color="var(--chart-blue-5)" />
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={140}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(v) => truncateLabel(v, 14)}
+                  />
+                  {departmentChartAvg > 0 ? (
+                    <ReferenceLine x={departmentChartAvg} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip
+                    content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={departmentChartTotal} />}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-dept)"
+                    stroke="var(--chart-blue-5)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 10, 10]}
+                    barSize={18}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 32%, transparent)', radius: 10 }}
+                  >
+                    <LabelList dataKey="value" content={makeBarValuePercentLabel(departmentChartTotal, false)} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.19 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Assets by Site</h2>
+          <div className="mt-4 h-64">
+            {siteChartData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                No data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={siteChartData} layout="vertical" margin={{ left: 12, right: 48, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-site" color="var(--chart-blue-3)" />
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={120}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(v) => truncateLabel(v, 14)}
+                  />
+                  {siteChartAvg > 0 ? (
+                    <ReferenceLine x={siteChartAvg} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={siteChartTotal} />} />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-site)"
+                    stroke="var(--chart-blue-3)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 10, 10]}
+                    barSize={18}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 32%, transparent)', radius: 10 }}
+                  >
+                    <LabelList dataKey="value" content={makeBarValuePercentLabel(siteChartTotal, false)} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.2 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Top Suppliers</h2>
+          <div className="mt-4 h-64">
+            {supplierChartData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                No data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={supplierChartData} layout="vertical" margin={{ left: 12, right: 48, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-supplier" color="var(--chart-2)" />
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={140}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(v) => truncateLabel(v, 14)}
+                  />
+                  {supplierChartAvg > 0 ? (
+                    <ReferenceLine x={supplierChartAvg} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip
+                    content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={supplierChartTotal} />}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-supplier)"
+                    stroke="var(--chart-2)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 10, 10]}
+                    barSize={18}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 32%, transparent)', radius: 10 }}
+                  >
+                    <LabelList dataKey="value" content={makeBarValuePercentLabel(supplierChartTotal, false)} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.22 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Assets Age Distribution</h2>
+          <div className="mt-4 h-64">
+            {assetAgeChartTotal === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                No data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={assetAgeChartData} margin={{ left: 8, right: 12, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-age" color="var(--chart-blue-6)" />
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
+                  {assetAgeChartAvg > 0 ? (
+                    <ReferenceLine y={assetAgeChartAvg} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={assetAgeChartTotal} />} />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-age)"
+                    stroke="var(--chart-blue-6)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 0, 0]}
+                    barSize={28}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 28%, transparent)' }}
+                  >
+                    <LabelList dataKey="value" position="top" fill="var(--muted-foreground)" fontSize={11} fontWeight={800} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.24 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Warranty Timeline</h2>
+          <div className="mt-4 h-64">
+            {warrantyChartTotal === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                No data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={warrantyChartData} margin={{ left: 8, right: 12, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-warranty" color="var(--chart-4)" />
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
+                  {warrantyChartAvg > 0 ? (
+                    <ReferenceLine y={warrantyChartAvg} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={warrantyChartTotal} />} />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-warranty)"
+                    stroke="var(--chart-4)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 0, 0]}
+                    barSize={28}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 28%, transparent)' }}
+                  >
+                    <LabelList dataKey="value" position="top" fill="var(--muted-foreground)" fontSize={11} fontWeight={800} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.26 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Maintenance Cost by Provider</h2>
+          <div className="mt-4 h-64">
+            {maintenanceCostByProviderChartData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                No data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={maintenanceCostByProviderChartData} layout="vertical" margin={{ left: 12, right: 64, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-cost" color="var(--chart-blue-4)" />
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={160}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(v) => truncateLabel(v, 18)}
+                  />
+                  {maintenanceCostByProviderAvg > 0 ? (
+                    <ReferenceLine x={maintenanceCostByProviderAvg} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip
+                    content={({ label, payload }) => {
+                      const fixed = (Array.isArray(payload) ? payload : []).map((p: any) => ({ ...p, value: Number(p?.value) || 0 }));
+                      return <TooltipCard label={label} payload={fixed as any[]} total={maintenanceCostByProviderTotal} />;
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-cost)"
+                    stroke="var(--chart-blue-4)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 10, 10]}
+                    barSize={18}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 32%, transparent)', radius: 10 }}
+                  >
+                    <LabelList
+                      dataKey="value"
+                      content={(props: any) => {
+                        const raw = Number(props?.value ?? 0);
+                        const x = Number(props?.x ?? 0) + Number(props?.width ?? 0) + 8;
+                        const y = Number(props?.y ?? 0) + Number(props?.height ?? 0) / 2;
+                        return (
+                          <text x={x} y={y} dominantBaseline="middle" fill="var(--muted-foreground)" fontSize={11} fontWeight={800}>
+                            {formatMADCompact(raw)}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.28 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">PR Budget by Department</h2>
+          <div className="mt-4 h-64">
+            {purchaseBudgetByDepartmentChartData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                No data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={purchaseBudgetByDepartmentChartData} layout="vertical" margin={{ left: 12, right: 64, top: 8, bottom: 8 }}>
+                  <defs>
+                    <ChartGradient id="grad-budget" color="var(--chart-2)" />
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={160}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(v) => truncateLabel(v, 18)}
+                  />
+                  {purchaseBudgetByDepartmentAvg > 0 ? (
+                    <ReferenceLine x={purchaseBudgetByDepartmentAvg} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="4 4" />
+                  ) : null}
+                  <Tooltip
+                    content={({ label, payload }) => {
+                      const fixed = (Array.isArray(payload) ? payload : []).map((p: any) => ({ ...p, value: Number(p?.value) || 0 }));
+                      return <TooltipCard label={label} payload={fixed as any[]} total={purchaseBudgetByDepartmentTotal} />;
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#grad-budget)"
+                    stroke="var(--chart-2)"
+                    strokeOpacity={0.75}
+                    radius={[10, 10, 10, 10]}
+                    barSize={18}
+                    background={{ fill: 'color-mix(in oklch, var(--muted) 32%, transparent)', radius: 10 }}
+                  >
+                    <LabelList
+                      dataKey="value"
+                      content={(props: any) => {
+                        const raw = Number(props?.value ?? 0);
+                        const x = Number(props?.x ?? 0) + Number(props?.width ?? 0) + 8;
+                        const y = Number(props?.y ?? 0) + Number(props?.height ?? 0) / 2;
+                        return (
+                          <text x={x} y={y} dominantBaseline="middle" fill="var(--muted-foreground)" fontSize={11} fontWeight={800}>
+                            {formatMADCompact(raw)}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.3 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Activity Trend (6 months)</h2>
+          <div className="mt-4 h-64">
+            {activityTrendData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                No data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={activityTrendData} margin={{ left: 8, right: 12, top: 12, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(v) => {
+                      const s = String(v);
+                      const d = parseDateValue(s + '-01');
+                      if (!d) return s;
+                      return new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d);
+                    }}
+                  />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
+                  <Tooltip
+                    content={({ label, payload }) => {
+                      const month = String(label ?? '');
+                      const d = parseDateValue(month + '-01');
+                      const pretty = d ? new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d) : month;
+                      return <TooltipCard label={pretty} payload={payload as any[]} total={activityTrendTotals.tickets + activityTrendTotals.requests} />;
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="tickets"
+                    name="Tickets"
+                    stroke="var(--chart-blue-2)"
+                    strokeWidth={3}
+                    dot={{ r: 3, strokeWidth: 2, fill: 'var(--background)' }}
+                    activeDot={{ r: 5 }}
+                    isAnimationActive={!shouldReduceMotion}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="requests"
+                    name="Requests"
+                    stroke="var(--chart-2)"
+                    strokeWidth={3}
+                    dot={{ r: 3, strokeWidth: 2, fill: 'var(--background)' }}
+                    activeDot={{ r: 5 }}
+                    isAnimationActive={!shouldReduceMotion}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.23 }}
+          className="premium-surface flex h-full flex-col rounded-3xl p-5"
+        >
+          <h2 className="text-lg font-bold">Lifecycle Overview</h2>
+          <div className="mt-4 flex h-64 flex-col gap-3">
+            <div className="min-h-0 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={lifecycleChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="55%"
+                    outerRadius="80%"
+                    paddingAngle={2}
+                    labelLine={false}
+                    label={false}
+                    activeIndex={activeLifecycleIndex ?? undefined}
+                    activeShape={renderActiveDonutSector}
+                    onMouseEnter={(_, index) => setActiveLifecycleIndex(index)}
+                    onMouseLeave={() => setActiveLifecycleIndex(null)}
+                    isAnimationActive={!shouldReduceMotion}
+                  >
+                    {lifecycleChartData.map((entry) => (
+                      <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                    ))}
+                    <Label
+                      content={() => (
+                        <CenterLabel
+                          title={lifecycleCenterTitle}
+                          total={lifecycleCenterTotal}
+                          subtitle={lifecycleCenterSubtitle}
+                        />
+                      )}
+                      position="center"
+                    />
+                  </Pie>
+                  <Tooltip
+                    content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={lifecycleChartTotal} />}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="h-28 min-h-0 w-full shrink-0 overflow-auto pr-1">
+              <div className="space-y-1">
+                {lifecycleChartData.map((entry) => {
+                  const value = Number(entry.value) || 0;
+                  const percent = lifecycleChartTotal > 0 ? (value / lifecycleChartTotal) * 100 : 0;
+
+                  return (
+                    <div key={String(entry.name)} className="flex items-center justify-between gap-2 rounded-xl px-1.5 py-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+                        <span className="truncate text-xs font-semibold">{String(entry.name)}</span>
+                      </div>
+                      <div className="shrink-0 text-right text-xs font-semibold tabular-nums text-muted-foreground">
+                        {formatPercent(percent)}
+                        <span className="ml-2 opacity-70">{value}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </motion.section>
       </div>

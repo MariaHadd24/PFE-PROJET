@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router';
 import { motion, useReducedMotion } from 'motion/react';
 import {
@@ -98,6 +98,8 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
   const shouldReduceMotion = useReducedMotion();
   const { user } = useAuth();
 
+  const listRef = useRef<HTMLDivElement | null>(null);
+
   const role = user?.role ?? 'Reader';
 
   const visibleItems = navItems.filter((item) => {
@@ -109,11 +111,30 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
     return location.pathname.startsWith(path);
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const raf = requestAnimationFrame(() => {
+      const container = listRef.current;
+      if (!container) return;
+      const activeEl = container.querySelector<HTMLElement>('a[aria-current="page"]');
+      if (!activeEl) return;
+
+      try {
+        activeEl.scrollIntoView({ block: 'nearest', behavior: shouldReduceMotion ? 'auto' : 'smooth' });
+      } catch {
+        // ignore
+      }
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [isOpen, location.pathname, shouldReduceMotion]);
+
   return (
     <motion.aside
       className={
         [
-          'fixed top-20 left-0 bottom-0 z-50 w-64 overflow-hidden transform-gpu',
+          'fixed top-20 left-0 bottom-0 z-50 w-64 overflow-hidden will-change-transform',
           // Premium glass surface (uses existing theme.css .glass)
           'glass backdrop-blur-2xl',
           'border-r border-sidebar-border/55',
@@ -169,122 +190,124 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
       <nav
         className={
           [
-            'relative flex h-full flex-col gap-1.5 p-3 pb-3 overflow-hidden',
+            'relative flex h-full min-h-0 flex-col gap-1.5 p-3 pb-3 overflow-hidden',
             '[@media(max-height:760px)]:p-2 [@media(max-height:760px)]:gap-1',
             '[@media(max-height:690px)]:p-2 [@media(max-height:690px)]:gap-0.5',
           ].join(' ')
         }
       >
-        {visibleItems.map((item, index) => (
-          <motion.div
-            key={item.path}
-            initial={shouldReduceMotion ? false : { opacity: 0, x: -8 }}
-            animate={shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 1, x: 0 }}
-            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.16, ease: 'easeOut', delay: Math.min(index * 0.01, 0.08) }}
-          >
-            {(() => {
-              const active = isActive(item.path);
-              return (
-            <Link
-              to={item.path}
-              aria-current={active ? 'page' : undefined}
-              className={
-                [
-                  'group relative flex items-center gap-3 rounded-2xl px-3.5 py-2',
-                  '[@media(max-height:760px)]:py-1.5',
-                  '[@media(max-height:690px)]:py-1',
-                  'transition-[background-color,box-shadow,transform] duration-200 ease-out',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35',
-                  active
-                    ? 'bg-white/18 shadow-lg ring-1 ring-white/26 backdrop-blur-md'
-                    : 'opacity-90 hover:opacity-100 hover:bg-white/14 hover:ring-1 hover:ring-white/16 hover:shadow-md dark:hover:bg-sidebar-accent/80 hover:translate-x-[1px]',
-                ].join(' ')
-              }
+        <div ref={listRef} className="sidebar-scroll min-h-0 flex-1 overflow-y-auto scroll-smooth pr-1">
+          {visibleItems.map((item, index) => (
+            <motion.div
+              key={item.path}
+              initial={shouldReduceMotion ? false : { opacity: 0, x: -8 }}
+              animate={shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 1, x: 0 }}
+              transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.16, ease: 'easeOut', delay: Math.min(index * 0.01, 0.08) }}
             >
-              {/* Stronger active surface */}
-              {active ? (
-                <span
-                  className="pointer-events-none absolute inset-0 rounded-2xl opacity-90"
-                  style={{
-                    backgroundImage:
-                      'linear-gradient(135deg, color-mix(in oklch, var(--sidebar-primary-foreground) 14%, transparent), transparent 45%, color-mix(in oklch, var(--primary) 22%, transparent))',
-                  }}
-                  aria-hidden
-                />
-              ) : null}
+              {(() => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    to={item.path}
+                    aria-current={active ? 'page' : undefined}
+                    className={
+                      [
+                        'group relative flex items-center gap-3 rounded-2xl px-3.5 py-2',
+                        '[@media(max-height:760px)]:py-1.5',
+                        '[@media(max-height:690px)]:py-1',
+                        'transition-[background-color,box-shadow,transform] duration-200 ease-out',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35',
+                        active
+                          ? 'bg-white/18 shadow-lg ring-1 ring-white/26 backdrop-blur-md'
+                          : 'opacity-90 hover:opacity-100 hover:bg-white/14 hover:ring-1 hover:ring-white/16 hover:shadow-md dark:hover:bg-sidebar-accent/80 hover:translate-x-[1px]',
+                      ].join(' ')
+                    }
+                  >
+                    {/* Stronger active surface */}
+                    {active ? (
+                      <span
+                        className="pointer-events-none absolute inset-0 rounded-2xl opacity-90"
+                        style={{
+                          backgroundImage:
+                            'linear-gradient(135deg, color-mix(in oklch, var(--sidebar-primary-foreground) 14%, transparent), transparent 45%, color-mix(in oklch, var(--primary) 22%, transparent))',
+                        }}
+                        aria-hidden
+                      />
+                    ) : null}
 
-              <span
-                className={
-                  [
-                    'pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200 ease-out',
-                    active ? 'opacity-100' : 'group-hover:opacity-100',
-                  ].join(' ')
-                }
-                style={{
-                  backgroundImage:
-                    'linear-gradient(120deg, transparent 0%, color-mix(in oklch, var(--sidebar-primary-foreground) 14%, transparent) 45%, transparent 70%)',
-                }}
-                aria-hidden
-              />
+                    <span
+                      className={
+                        [
+                          'pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200 ease-out',
+                          active ? 'opacity-100' : 'group-hover:opacity-100',
+                        ].join(' ')
+                      }
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(120deg, transparent 0%, color-mix(in oklch, var(--sidebar-primary-foreground) 14%, transparent) 45%, transparent 70%)',
+                      }}
+                      aria-hidden
+                    />
 
-              {/* Icon with animation */}
-              <motion.div
-                whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
-                transition={shouldReduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 22 }}
-                className={
-                  [
-                    'relative inline-flex h-10 w-10 items-center justify-center rounded-2xl shrink-0',
-                    '[@media(max-height:760px)]:h-9 [@media(max-height:760px)]:w-9',
-                    '[@media(max-height:690px)]:h-8 [@media(max-height:690px)]:w-8',
-                    'ring-1 ring-white/15',
-                    active ? 'bg-white/14 shadow-sm' : 'bg-white/8 group-hover:bg-white/12',
-                    // normalize inner icon size
-                    '[&>svg]:h-5 [&>svg]:w-5 [@media(max-height:760px)]:[&>svg]:h-[18px] [@media(max-height:760px)]:[&>svg]:w-[18px]',
-                    '[@media(max-height:690px)]:[&>svg]:h-4 [@media(max-height:690px)]:[&>svg]:w-4',
-                  ].join(' ')
-                }
-              >
-                {item.icon}
-              </motion.div>
-              
-              <span
-                className={[
-                  'relative min-w-0 flex-1 truncate font-semibold tracking-wide text-sm leading-none',
-                  '[@media(max-height:760px)]:text-xs',
-                  '[@media(max-height:690px)]:text-[11px]',
-                  active ? 'opacity-100' : 'opacity-95',
-                ].join(' ')}
-              >
-                {item.label}
-              </span>
-              
-              {item.children && (
-                <ChevronRight className={`relative w-4 h-4 ml-auto ${active ? 'text-white' : 'opacity-70'}`} />
-              )}
-              
-              {/* Active indicator */}
-              {active && (
-                <>
-                  <motion.div
-                    className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-white/95 shadow-[0_0_0_1px_rgba(255,255,255,0.32)]"
-                    layoutId="activeIndicator"
-                    transition={shouldReduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 30 }}
-                  />
-                  <span
-                    className="pointer-events-none absolute -left-1 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full opacity-70 blur-xl"
-                    style={{
-                      background:
-                        'radial-gradient(circle, color-mix(in oklch, var(--primary) 55%, transparent) 0%, transparent 70%)',
-                    }}
-                    aria-hidden
-                  />
-                </>
-              )}
-            </Link>
-              );
-            })()}
-          </motion.div>
-        ))}
+                    {/* Icon with animation */}
+                    <motion.div
+                      whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+                      transition={shouldReduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 22 }}
+                      className={
+                        [
+                          'relative inline-flex h-10 w-10 items-center justify-center rounded-2xl shrink-0',
+                          '[@media(max-height:760px)]:h-9 [@media(max-height:760px)]:w-9',
+                          '[@media(max-height:690px)]:h-8 [@media(max-height:690px)]:w-8',
+                          'ring-1 ring-white/15',
+                          active ? 'bg-white/14 shadow-sm' : 'bg-white/8 group-hover:bg-white/12',
+                          // normalize inner icon size
+                          '[&>svg]:h-5 [&>svg]:w-5 [@media(max-height:760px)]:[&>svg]:h-[18px] [@media(max-height:760px)]:[&>svg]:w-[18px]',
+                          '[@media(max-height:690px)]:[&>svg]:h-4 [@media(max-height:690px)]:[&>svg]:w-4',
+                        ].join(' ')
+                      }
+                    >
+                      {item.icon}
+                    </motion.div>
+
+                    <span
+                      className={[
+                        'relative min-w-0 flex-1 truncate font-semibold tracking-wide text-sm leading-snug',
+                        '[@media(max-height:760px)]:text-xs',
+                        '[@media(max-height:690px)]:text-[11px]',
+                        active ? 'opacity-100' : 'opacity-95',
+                      ].join(' ')}
+                    >
+                      {item.label}
+                    </span>
+
+                    {item.children && (
+                      <ChevronRight className={`relative w-4 h-4 ml-auto ${active ? 'text-white' : 'opacity-70'}`} />
+                    )}
+
+                    {/* Active indicator */}
+                    {active && (
+                      <>
+                        <motion.div
+                          className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-white/95 shadow-[0_0_0_1px_rgba(255,255,255,0.32)]"
+                          layoutId="activeIndicator"
+                          transition={shouldReduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 30 }}
+                        />
+                        <span
+                          className="pointer-events-none absolute -left-1 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full opacity-70 blur-xl"
+                          style={{
+                            background:
+                              'radial-gradient(circle, color-mix(in oklch, var(--primary) 55%, transparent) 0%, transparent 70%)',
+                          }}
+                          aria-hidden
+                        />
+                      </>
+                    )}
+                  </Link>
+                );
+              })()}
+            </motion.div>
+          ))}
+        </div>
       </nav>
     </motion.aside>
   );

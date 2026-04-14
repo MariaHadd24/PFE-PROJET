@@ -121,10 +121,10 @@ const stockColumns: Array<{ key: StockColumnKey; label: string; align?: 'left' |
   { key: 'bciCheck', label: 'BCI Check' },
   { key: 'vnc', label: 'VNC' },
   { key: 'plant', label: 'Plant' },
-  { key: 'store', label: 'Magasin' },
-  { key: 'cabinet', label: 'Armoire' },
+  { key: 'store', label: 'Store' },
+  { key: 'cabinet', label: 'Cabinet' },
   { key: 'rack', label: 'Rack' },
-  { key: 'level', label: 'Étage' },
+  { key: 'level', label: 'Level' },
   { key: 'stockIn', label: 'Stock IN' },
   { key: 'dateIn', label: 'Date IN' },
   { key: 'pilote', label: 'Pilote' },
@@ -1497,7 +1497,7 @@ export function StockInventoryPage() {
     const navFilter = navState?.stockInventoryFilter;
 
     // No "All Stock" view: default to the first category tab.
-    if (activeCategory || navFilter) return; // <-- AJOUTER || navFilter ICI
+    if (activeCategory || navFilter) return; // <-- ADD || navFilter HERE
     if (!defaultCategory) return;
     setActiveCategory(defaultCategory);
   }, [activeCategory, defaultCategory, location.state]);
@@ -2146,25 +2146,48 @@ export function StockInventoryPage() {
       animate={shouldReduceMotion ? undefined : 'show'}
     >
       {/* Header */}
-      <motion.div className="flex items-center justify-between gap-4" variants={shouldReduceMotion ? undefined : pageItemVariants}>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Assets IT</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Operational stock overview</p>
-        </div>
+      <motion.div className="page-hero" variants={shouldReduceMotion ? undefined : pageItemVariants}>
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <Columns3 className="h-[18px] w-[18px]" />
+              </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              void (async () => {
-                await exportStockToExcel(rows, typeColumnLabel);
-                toast.success('Export ready', { description: 'Assets IT Excel downloaded' });
-              })();
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 font-medium"
-          >
-            <Download className="w-4 h-4" />
-            Export Excel
-          </button>
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Assets IT</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Assets IT
+                    </span>
+                    <span className="page-hero__title-text">Assets IT</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Operational stock overview</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="page-hero__actions">
+            <button
+              onClick={() => {
+                void (async () => {
+                  await exportStockToExcel(rows, typeColumnLabel);
+                  toast.success('Export ready', { description: 'Assets IT Excel downloaded' });
+                })();
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-foreground hover:bg-muted/30 transition-all font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Export Excel
+            </button>
 
           {canManageInventory && (
             <>
@@ -2182,7 +2205,7 @@ export function StockInventoryPage() {
                       const imported = await importStockInventoryFromArrayBuffer(buf);
                       if (Array.isArray(imported.assets) && imported.assets.length > 0) {
                         // Persist to backend (SQL Server) so it appears in SSMS.
-                        toast.message('Import en cours…', { description: `Synchronisation de ${imported.assets.length} assets vers la base` });
+                        toast.message('Import in progress…', { description: `Syncing ${imported.assets.length} assets to the database` });
 
                         const list = imported.assets as any[];
                         const { created, updated, skipped, failed } = await upsertImportedAssetsToBackend(list);
@@ -2192,10 +2215,10 @@ export function StockInventoryPage() {
                         await refreshAll();
 
                         if (failed === 0) {
-                          toast.success('Import terminé', { description: `${created} créé(s), ${updated} mis à jour, ${skipped} ignoré(s)` });
+                          toast.success('Import completed', { description: `${created} created, ${updated} updated, ${skipped} skipped` });
                         } else {
-                          toast.warning('Import terminé avec erreurs', {
-                            description: `${created} créé(s), ${updated} mis à jour, ${skipped} ignoré(s), ${failed} échec(s)`
+                          toast.warning('Import completed with errors', {
+                            description: `${created} created, ${updated} updated, ${skipped} skipped, ${failed} failed`
                           });
                         }
                         if (imported.duplicateSerials > 0) {
@@ -2232,6 +2255,7 @@ export function StockInventoryPage() {
               Add New Asset
             </button>
           )}
+        </div>
         </div>
       </motion.div>
 
@@ -2316,9 +2340,9 @@ export function StockInventoryPage() {
           <div className="px-6 pb-3">
             <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="font-semibold text-foreground">Obsolete / Réformé</div>
+                <div className="font-semibold text-foreground">Obsolete / Retired</div>
                 <div className="text-sm text-muted-foreground mt-0.5">
-                  Retired (Réformé) or older than {END_OF_LIFE_YEARS} years since mise en service (Date OUT): cannot be assigned.
+                  Retired or older than {END_OF_LIFE_YEARS} years since in-service date (Date OUT): cannot be assigned.
                 </div>
               </div>
               {canManageInventory && (

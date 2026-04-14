@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { ClipboardList } from 'lucide-react';
 import type { Assignment, AssignmentStatus } from '../types';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -289,64 +290,87 @@ export function AssignmentDetailPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="outline">
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <Button asChild variant="outline" className="mb-4">
               <Link to="/assignments">Back</Link>
             </Button>
-            <div className="text-xl font-semibold">Assignment #{assignment.id}</div>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusStyles[status]}`}>
-              {status}
-            </span>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {deviceCategory ? `${deviceCategory}` : 'Assignment'}
-            {linkedAsset?.assetTag ? ` • Asset: ${linkedAsset.assetTag}` : assignment.assetId ? ` • AssetId: ${assignment.assetId}` : ''}
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          {canManageAssignments && (
-            <>
-              {!editMode ? (
-                <Button variant="outline" onClick={() => setEditMode(true)}>
-                  Edit
-                </Button>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={() => setEditMode(false)} disabled={isSaving}>
-                    Cancel
-                  </Button>
-                  <Button onClick={() => void onSave()} disabled={isSaving}>
-                    {isSaving ? 'Saving…' : 'Save'}
-                  </Button>
-                </>
-              )}
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <ClipboardList className="h-[18px] w-[18px]" />
+              </div>
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={isDeleting}>
-                    Delete
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Assignments</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusStyles[status]}`}>
+                    {status}
+                  </span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Assignment #{assignment.id}
+                    </span>
+                    <span className="page-hero__title-text">Assignment #{assignment.id}</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">
+                  {deviceCategory ? `${deviceCategory}` : 'Assignment'}
+                  {linkedAsset?.assetTag ? ` • Asset: ${linkedAsset.assetTag}` : assignment.assetId ? ` • AssetId: ${assignment.assetId}` : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="page-hero__actions">
+            {canManageAssignments && (
+              <>
+                {!editMode ? (
+                  <Button variant="outline" onClick={() => setEditMode(true)}>
+                    Edit
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete assignment</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete the assignment. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => void onDelete()}>
-                      {isDeleting ? 'Deleting…' : 'Delete'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          )}
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setEditMode(false)} disabled={isSaving}>
+                      Cancel
+                    </Button>
+                    <Button onClick={() => void onSave()} disabled={isSaving}>
+                      {isSaving ? 'Saving…' : 'Save'}
+                    </Button>
+                  </>
+                )}
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isDeleting}>
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete assignment</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the assignment. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => void onDelete()}>
+                        {isDeleting ? 'Deleting…' : 'Delete'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

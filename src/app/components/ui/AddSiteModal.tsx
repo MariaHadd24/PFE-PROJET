@@ -149,20 +149,20 @@ export function AddSiteModal({ isOpen, onClose, onAdd, initialSite, onUpdate }: 
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Code site IT</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">IT site code</label>
               <input
                 type="text"
                 name="codeIt"
                 value={formData.codeIt}
                 onChange={handleChange}
-                placeholder="ex: SEB, BOK, MA6, MA7, MAG"
+                placeholder="e.g. SEB, BOK, MA6, MA7, MAG"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none"
               />
             </div>
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ville <span className="text-red-500">*</span>
+                Location <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -173,7 +173,7 @@ export function AddSiteModal({ isOpen, onClose, onAdd, initialSite, onUpdate }: 
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  placeholder="ex: Aïn Sebaâ, Herbili, Bouznika..."
+                  placeholder="e.g. Aïn Sebaâ, Herbili, Bouznika..."
                   className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none ${
                     errors.location ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -183,13 +183,13 @@ export function AddSiteModal({ isOpen, onClose, onAdd, initialSite, onUpdate }: 
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Zone industrielle</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Industrial zone</label>
               <input
                 type="text"
                 name="zone"
                 value={formData.zone}
                 onChange={handleChange}
-                placeholder="ex: Zone industrielle Bouskoura"
+                placeholder="e.g. Industrial zone Bouskoura"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none"
               />
             </div>
@@ -201,7 +201,7 @@ export function AddSiteModal({ isOpen, onClose, onAdd, initialSite, onUpdate }: 
                 name="city"
                 value={formData.city}
                 onChange={handleChange}
-                placeholder="ex: Casablanca"
+                placeholder="e.g. Casablanca"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none"
               />
             </div>

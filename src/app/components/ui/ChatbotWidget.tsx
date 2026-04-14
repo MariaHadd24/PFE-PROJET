@@ -62,12 +62,12 @@ export function ChatbotWidget() {
 
   const suggestedQuestions = useMemo(
     () => [
-      "Combien d'assets sont disponibles / assignés / en réparation ?",
-      'Comment importer un fichier Excel dans le stock ?',
-      'Je veux ajouter un nouvel asset',
-      'Créer une nouvelle affectation (assignment)',
-      'Créer un ticket de maintenance',
-      'Où voir les logs (audit) et le reporting ?'
+      'How many assets are available / assigned / in repair?',
+      'How do I import an Excel file into stock?',
+      'I want to add a new asset',
+      'Create a new assignment',
+      'Create a maintenance ticket',
+      'Where can I see audit logs and reporting?'
     ],
     [],
   );
@@ -75,7 +75,7 @@ export function ChatbotWidget() {
   const greeting = useMemo(() => {
     const name = String(user?.name ?? '').trim();
     const who = name ? ` ${name}` : '';
-    return `Salut${who} ! Je suis l’assistant du site. Je réponds uniquement aux questions liées aux fonctionnalités de cette application (Stock, Assignments, Orders PR/PO, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting). Pose-moi une question ou clique une suggestion.`;
+    return `Hi${who}! I’m the site assistant. I can only answer questions related to this application’s features (Stock, Assignments, Orders PR/PO, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting). Ask a question or click a suggestion.`;
   }, [user?.name]);
 
   useEffect(() => {
@@ -180,23 +180,23 @@ export function ChatbotWidget() {
 
     if (!q) {
       return {
-        text: 'Écris une question (ex: “import excel”, “ticket maintenance”, “nouvel asset”…).',
+        text: 'Type a question (e.g. “import excel”, “maintenance ticket”, “new asset”…).',
       };
     }
 
     if (includesAny(q, ['bonjour', 'salut', 'hello', 'hi'])) {
       return {
-        text: `Bonjour ! Je peux t’aider sur le stock, les affectations, les tickets maintenance, et les achats (PR/PO).`,
+        text: `Hi! I can help with stock, assignments, maintenance tickets, and purchasing (PR/PO).`,
       };
     }
 
     if (includesAny(q, ['aide', 'help', 'menu', 'fonctionnalite', 'fonctionnalites', 'que peux-tu faire', 'quoi faire'])) {
       return {
         text:
-          'Voici les parties disponibles dans ce site :\n' +
-          '- Assets IT (import/export Excel, scan QR, gestion colonnes/vues)\n' +
-          '- Assignments (affectations)\n' +
-          '- Orders (Achats / Commandes: PR & PO)\n' +
+          'Here are the available modules in this site:\n' +
+          '- Assets IT (Excel import/export, QR scan, columns/views)\n' +
+          '- Assignments\n' +
+          '- Orders (PR & PO)\n' +
           '- Maintenance (tickets)\n' +
           '- Administration (users, sites, categories, suppliers, departments)\n' +
           '- Audit Logs\n' +
@@ -205,7 +205,7 @@ export function ChatbotWidget() {
         actions: [
           { label: 'Assets IT', link: '/stock-inventory' },
           { label: 'Assignments', link: '/assignments' },
-          { label: 'Orders (Achats)', link: '/orders' },
+          { label: 'Orders', link: '/orders' },
           { label: 'Maintenance', link: '/maintenance' },
           { label: 'Administration', link: '/admin' },
           { label: 'Audit Logs', link: '/audit-logs' },
@@ -218,26 +218,26 @@ export function ChatbotWidget() {
     if (includesAny(q, ['combien', 'stats', 'kpi', 'etat', 'status'])) {
       if (includesAny(q, ['asset', 'stock', 'inventaire', 'inventory'])) {
         return {
-          text: `Stock (assets): Disponible ${available} • Assigné ${assigned} • En réparation ${inRepair} • Retiré ${retired}.`,
-          actions: [{ label: 'Ouvrir Assets IT', link: '/stock-inventory' }],
+          text: `Stock (assets): Available ${available} • Assigned ${assigned} • In repair ${inRepair} • Retired ${retired}.`,
+          actions: [{ label: 'Open Assets IT', link: '/stock-inventory' }],
         };
       }
       if (includesAny(q, ['ticket', 'maintenance'])) {
         return {
-          text: `Maintenance: ${openTickets} ticket(s) ouverts/en cours.`,
-          actions: [{ label: 'Ouvrir Maintenance', link: '/maintenance' }],
+          text: `Maintenance: ${openTickets} ticket(s) open / in progress.`,
+          actions: [{ label: 'Open Maintenance', link: '/maintenance' }],
         };
       }
       if (includesAny(q, ['assignment', 'affect', 'affectation'])) {
         return {
-          text: `Assignments: ${activeAssignments} affectation(s) active(s).`,
-          actions: [{ label: 'Ouvrir Assignments', link: '/assignments' }],
+          text: `Assignments: ${activeAssignments} active assignment(s).`,
+          actions: [{ label: 'Open Assignments', link: '/assignments' }],
         };
       }
       if (includesAny(q, ['order', 'achat', 'pr', 'po', 'purchase'])) {
         return {
-          text: `Orders: PR en attente ${prPending} • PO en statut Ordered ${poOrdered}.`,
-          actions: [{ label: 'Ouvrir Orders', link: '/orders' }],
+          text: `Orders: PR pending ${prPending} • PO with status Ordered ${poOrdered}.`,
+          actions: [{ label: 'Open Orders', link: '/orders' }],
         };
       }
     }
@@ -245,117 +245,117 @@ export function ChatbotWidget() {
     if (includesAny(q, ['achat', 'achats', 'commande', 'commandes', 'orders', 'order', 'purchase', 'procurement'])) {
       return {
         text:
-          'Pour les achats/commandes: ouvre “Orders”.\n' +
-          '- PR (Purchase Request): onglet “Purchase Requests” → bouton “New PR”\n' +
-          '- PO (Purchase Order): onglet “Purchase Orders” → bouton “New PO”',
-        actions: [{ label: 'Aller à Orders (Achats)', link: '/orders' }],
+          'For purchasing: open “Orders”.\n' +
+          '- PR (Purchase Request): “Purchase Requests” tab → “New PR”\n' +
+          '- PO (Purchase Order): “Purchase Orders” tab → “New PO”',
+        actions: [{ label: 'Go to Orders', link: '/orders' }],
       };
     }
 
     if (includesAny(q, ['import', 'excel', 'xlsx', 'xls'])) {
       return {
-        text: 'Pour importer Excel: va dans “Assets IT” puis clique “Import Excel” (bouton en haut à droite). Le fichier doit être .xlsx/.xls.',
-        actions: [{ label: 'Aller à Assets IT', link: '/stock-inventory' }],
+        text: 'To import Excel: go to “Assets IT” then click “Import Excel” (top right). The file must be .xlsx/.xls.',
+        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['scan', 'qr', 'barcode', 'code barre', 'codebarre'])) {
       return {
-        text: 'Pour scanner: va dans “Assets IT” puis clique “Scan QR” (bouton en haut à droite).',
-        actions: [{ label: 'Aller à Assets IT', link: '/stock-inventory' }],
+        text: 'To scan: go to “Assets IT” then click “Scan QR” (top right).',
+        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['seuil', 'threshold', 'stock bas', 'low stock'])) {
       return {
-        text: 'Les seuils “stock bas” se configurent depuis “Assets IT” → bouton “Configure thresholds” (dans l’encart stock bas).',
-        actions: [{ label: 'Aller à Assets IT', link: '/stock-inventory' }],
+        text: 'Low stock thresholds can be configured from “Assets IT” → “Configure thresholds” (in the low stock panel).',
+        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['colonne', 'colonnes', 'vue', 'vues', 'view', 'views'])) {
       return {
-        text: 'Dans “Assets IT”, tu peux personnaliser les colonnes et enregistrer des vues (boutons de configuration en haut de la page).',
-        actions: [{ label: 'Aller à Assets IT', link: '/stock-inventory' }],
+        text: 'In “Assets IT”, you can customize columns and save views (configuration buttons at the top of the page).',
+        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['export', 'telecharger', 'download'])) {
       return {
-        text: 'Pour exporter le stock: “Assets IT” → bouton “Export Excel” en haut à droite.',
-        actions: [{ label: 'Aller à Assets IT', link: '/stock-inventory' }],
+        text: 'To export stock: “Assets IT” → “Export Excel” button (top right).',
+        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['nouvel asset', 'ajouter asset', 'add asset', 'new asset', 'asset'])) {
       return {
-        text: 'Pour ajouter un asset: “Assets IT” → bouton “Add New Asset” (en haut à droite) puis remplis le formulaire.',
-        actions: [{ label: 'Aller à Assets IT', link: '/stock-inventory' }],
+        text: 'To add an asset: “Assets IT” → “Add New Asset” button (top right), then fill the form.',
+        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['assignment', 'affectation', 'assigner', 'assign'])) {
       return {
-        text: 'Pour créer une affectation: “Assignments” → bouton “New assignment” puis sélectionne l’asset/utilisateur/département/site.',
-        actions: [{ label: 'Aller à Assignments', link: '/assignments' }],
+        text: 'To create an assignment: “Assignments” → “New assignment”, then select the asset/user/department/site.',
+        actions: [{ label: 'Go to Assignments', link: '/assignments' }],
       };
     }
 
     if (includesAny(q, ['maintenance', 'ticket', 'repair', 'reparation'])) {
       return {
-        text: 'Pour ouvrir un ticket: “Maintenance” → bouton “New ticket”. Règle métier: quand le ticket est Open/InProgress, l’asset passe automatiquement à “InRepair”.',
-        actions: [{ label: 'Aller à Maintenance', link: '/maintenance' }],
+        text: 'To open a ticket: “Maintenance” → “New ticket”. Business rule: when a ticket is Open/InProgress, the asset automatically switches to “InRepair”.',
+        actions: [{ label: 'Go to Maintenance', link: '/maintenance' }],
       };
     }
 
     if (includesAny(q, ['pr', 'purchase request', 'demande achat'])) {
       return {
-        text: 'Pour créer une PR: “Orders” → onglet “Purchase Requests” → bouton “New PR”.',
-        actions: [{ label: 'Aller à Orders', link: '/orders' }],
+        text: 'To create a PR: “Orders” → “Purchase Requests” tab → “New PR”.',
+        actions: [{ label: 'Go to Orders', link: '/orders' }],
       };
     }
 
     if (includesAny(q, ['po', 'purchase order', 'bon de commande'])) {
       return {
-        text: 'Pour créer un PO: “Orders” → onglet “Purchase Orders” → bouton “New PO”.',
-        actions: [{ label: 'Aller à Orders', link: '/orders' }],
+        text: 'To create a PO: “Orders” → “Purchase Orders” tab → “New PO”.',
+        actions: [{ label: 'Go to Orders', link: '/orders' }],
       };
     }
 
     if (includesAny(q, ['admin', 'utilisateur', 'users', 'sites', 'categories', 'suppliers', 'departments'])) {
       return {
-        text: 'Administration: gère Users, Sites, Categories, Suppliers, Departments depuis la page “Administration”.',
-        actions: [{ label: 'Aller à Administration', link: '/admin' }],
+        text: 'Administration: manage Users, Sites, Categories, Suppliers, and Departments from the “Administration” page.',
+        actions: [{ label: 'Go to Administration', link: '/admin' }],
       };
     }
 
     if (includesAny(q, ['audit', 'logs', 'journal'])) {
       return {
-        text: 'Les actions système sont visibles dans “Audit Logs”.',
-        actions: [{ label: 'Ouvrir Audit Logs', link: '/audit-logs' }],
+        text: 'System actions are visible in “Audit Logs”.',
+        actions: [{ label: 'Open Audit Logs', link: '/audit-logs' }],
       };
     }
 
     if (includesAny(q, ['report', 'reporting', 'rapport'])) {
       return {
-        text: 'Les rapports et indicateurs se trouvent dans “Reporting”.',
-        actions: [{ label: 'Ouvrir Reporting', link: '/reporting' }],
+        text: 'Reports and KPIs are available in “Reporting”.',
+        actions: [{ label: 'Open Reporting', link: '/reporting' }],
       };
     }
 
     if (includesAny(q, ['vendor', 'fournisseur', 'portal'])) {
       return {
-        text: 'Le répertoire fournisseurs / portail est dans “Vendor Portal”.',
-        actions: [{ label: 'Ouvrir Vendor Portal', link: '/vendor-portal' }],
+        text: 'The supplier directory / portal is in “Vendor Portal”.',
+        actions: [{ label: 'Open Vendor Portal', link: '/vendor-portal' }],
       };
     }
 
     if (includesAny(q, ['rechercher', 'search', 'trouver'])) {
       return {
-        text: 'Tu peux rechercher rapidement: Ctrl+K (palette de recherche) ou utilise la barre de recherche dans Assets IT.',
+        text: 'You can search quickly: Ctrl+K (search palette), or use the search bar in Assets IT.',
         actions: [
-          { label: 'Ouvrir Assets IT', link: '/stock-inventory' },
-          { label: 'Ouvrir Dashboard', link: '/dashboard' },
+          { label: 'Open Assets IT', link: '/stock-inventory' },
+          { label: 'Open Dashboard', link: '/dashboard' },
         ],
       };
     }
@@ -404,7 +404,7 @@ export function ChatbotWidget() {
         const remaining = delayMs - elapsed;
         if (remaining > 0) await sleep(remaining);
         replaceTypingWithAssistant(typingId, {
-          text: String(res?.text ?? '').trim() || 'Je peux aider uniquement sur les fonctionnalités du site.',
+          text: String(res?.text ?? '').trim() || 'I can only help with the site features.',
           actions: Array.isArray(res?.actions) ? res.actions : undefined,
         });
       } catch (err) {
@@ -414,10 +414,10 @@ export function ChatbotWidget() {
         if (remaining > 0) await sleep(remaining);
         replaceTypingWithAssistant(typingId, {
           text:
-            'Je ne peux pas répondre à ça pour le moment (LLM indisponible). Je peux quand même aider sur les modules du site; pour les questions générales, démarre Ollama puis réessaie.',
+            'I can’t answer right now (LLM unavailable). I can still help with the site modules; for general questions, start Ollama and try again.',
           actions: [
-            { label: 'Menu (Aide)', link: '/dashboard' },
-            { label: 'Orders (Achats)', link: '/orders' },
+            { label: 'Help menu', link: '/dashboard' },
+            { label: 'Orders', link: '/orders' },
             { label: 'Assets IT', link: '/stock-inventory' },
           ],
         });
@@ -538,7 +538,7 @@ export function ChatbotWidget() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onFocus={() => setSuggestionsVisible(true)}
-                placeholder="Écris ta question…"
+                placeholder="Type your question…"
                 className="flex-1 h-10 px-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 text-sm outline-none focus:ring-2 focus:ring-primary/30"
               />
               <button

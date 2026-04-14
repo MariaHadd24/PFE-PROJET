@@ -63,21 +63,47 @@ export function MovementsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Stock & Movements</h1>
-          
-          <p className="text-muted-foreground mt-1">Manage entries, exits, and transfers</p>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <ArrowLeftRight className="h-[18px] w-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Stock</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Stock & Movements
+                    </span>
+                    <span className="page-hero__title-text">Stock & Movements</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Manage entries, exits, and transfers</p>
+              </div>
+            </div>
+          </div>
+
+          {canManageMovements && (
+            <div className="page-hero__actions">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                New movement
+              </button>
+            </div>
+          )}
         </div>
-        {canManageMovements && (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            New movement
-          </button>
-        )}
       </div>
 
       {/* Stats Cards */}

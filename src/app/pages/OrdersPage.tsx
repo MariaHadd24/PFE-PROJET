@@ -111,9 +111,35 @@ export function OrdersPage() {
       animate={shouldReduceMotion ? undefined : 'show'}
     >
       {/* Header */}
-      <motion.div variants={shouldReduceMotion ? undefined : pageItemVariants}>
-        <h1 className="text-3xl font-bold text-foreground">Orders</h1>
-        <p className="text-muted-foreground mt-1">Manage purchase requests and purchase orders</p>
+      <motion.div className="page-hero" variants={shouldReduceMotion ? undefined : pageItemVariants}>
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <ShoppingCart className="h-[18px] w-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Procurement</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Orders
+                    </span>
+                    <span className="page-hero__title-text">Orders</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Manage purchase requests and purchase orders</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Workflow Visualization */}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { ScrollText, Search } from 'lucide-react';
 import type { AuditLog, AuditLogResult } from '../types';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -230,7 +230,7 @@ function exportLogsToCsv(logs: AuditLog[]) {
 export function AuditLogsPage() {
   const { auditLogs, undoAuditLog } = useData();
   const { user } = useAuth();
-  const isAdmin = String((user as any)?.role ?? '') === 'Admin';
+  const isAdmin = String((user as any)?.role ?? '').trim().toLowerCase() === 'admin';
 
   const [undoing, setUndoing] = useState(false);
   const [undoError, setUndoError] = useState<string | null>(null);
@@ -306,10 +306,13 @@ export function AuditLogsPage() {
     setDetailsOpen(true);
   };
 
-  const canUndoSelected =
-    isAdmin &&
+  const supportsUndoSelected =
     !!selectedLog &&
-    (String(selectedLog.action).toUpperCase() === 'UPDATE' || String(selectedLog.action).toUpperCase() === 'DELETE');
+    (String(selectedLog.action).toUpperCase() === 'CREATE' ||
+      String(selectedLog.action).toUpperCase() === 'UPDATE' ||
+      String(selectedLog.action).toUpperCase() === 'DELETE');
+
+  const canUndoSelected = isAdmin && supportsUndoSelected;
 
   const onUndoSelected = async () => {
     if (!selectedLog) return;
@@ -331,12 +334,33 @@ export function AuditLogsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">System Audit Logs</h1>
-          <p className="text-muted-foreground mt-1">
-            Track all platform activities and changes for compliance monitoring.
-          </p>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <ScrollText className="h-[18px] w-[18px]" />
+              </div>
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">System</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      System Audit Logs
+                    </span>
+                    <span className="page-hero__title-text">System Audit Logs</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Track all platform activities and changes for compliance monitoring.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -530,16 +554,36 @@ export function AuditLogsPage() {
                       <button
                         type="button"
                         onClick={onUndoSelected}
-                        disabled={undoing}
+                        disabled={undoing || !canUndoSelected}
                         className="w-full border border-border bg-card text-foreground px-4 py-2 rounded-lg hover:bg-muted/30 transition-all font-medium disabled:opacity-50"
                       >
                         {undoing ? 'Undoing…' : `Undo ${String(selectedLog.action).toUpperCase()}`}
                       </button>
+                      {!isAdmin ? (
+                        <div className="text-xs text-muted-foreground">
+                          Undo is restricted to Admin users.
+                        </div>
+                      ) : null}
                       {undoError ? (
                         <div className="text-xs text-red-600 dark:text-red-300 break-words">{undoError}</div>
                       ) : null}
                       <div className="text-xs text-muted-foreground">
-                        Restores deleted records or reverts updates using the audit snapshot.
+                        Deletes newly created records, restores deleted records, or reverts updates using the audit snapshot.
+                      </div>
+                    </div>
+                  </div>
+                ) : supportsUndoSelected ? (
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full border border-border bg-card text-foreground px-4 py-2 rounded-lg font-medium opacity-50"
+                      >
+                        {`Undo ${String(selectedLog.action).toUpperCase()}`}
+                      </button>
+                      <div className="text-xs text-muted-foreground">
+                        Undo is restricted to Admin users.
                       </div>
                     </div>
                   </div>

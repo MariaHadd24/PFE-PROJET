@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Printer } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import {
   createPrinterTonerEntry,
@@ -437,7 +438,7 @@ export function PrinterTonerPage() {
       const quantity = asNumber(entryQuantity);
 
       if (!date || !selectedConsumableKey || !article || !articleCode || quantity <= 0) {
-        toast.error('Ajout entrée', { description: 'Veuillez remplir: date, consumable, quantité.' });
+        toast.error('Add entry', { description: 'Please fill in: date, consumable, quantity.' });
         return;
       }
 
@@ -449,13 +450,13 @@ export function PrinterTonerPage() {
           articleCode,
           quantity,
         });
-        toast.success('Entrée ajoutée');
+        toast.success('Entry added');
         setAddEntryOpen(false);
         resetEntryForm();
         await loadWorkbook();
       } catch (err: any) {
         const msg = String(err?.message ?? 'Unable to add entry');
-        toast.error('Ajout entrée', { description: msg });
+        toast.error('Add entry', { description: msg });
       } finally {
         setEntrySaving(false);
       }
@@ -492,7 +493,7 @@ export function PrinterTonerPage() {
       const quantity = asNumber(exitQuantity);
 
       if (!date || !selectedExitConsumableKey || !article || !articleCode || quantity <= 0) {
-        toast.error('Ajout sortie', { description: 'Veuillez remplir: date, consumable, quantité.' });
+        toast.error('Add exit', { description: 'Please fill in: date, consumable, quantity.' });
         return;
       }
 
@@ -504,13 +505,13 @@ export function PrinterTonerPage() {
           articleCode,
           quantity,
         });
-        toast.success('Sortie ajoutée');
+        toast.success('Exit added');
         setAddExitOpen(false);
         resetExitForm();
         await loadWorkbook();
       } catch (err: any) {
         const msg = String(err?.message ?? 'Unable to add exit');
-        toast.error('Ajout sortie', { description: msg });
+        toast.error('Add exit', { description: msg });
       } finally {
         setExitSaving(false);
       }
@@ -595,7 +596,7 @@ export function PrinterTonerPage() {
     return [] as any[];
   }, [consumables, entriesRows, exitsRows, pageIndex, pageSize, tab]);
 
-  const headerTitle = tab === 'consumables' ? 'Consumables' : tab === 'entries' ? 'Entrées' : tab === 'exits' ? 'Sorties' : 'Printer Toner';
+  const headerTitle = tab === 'consumables' ? 'Consumables' : tab === 'entries' ? 'Entries' : tab === 'exits' ? 'Exits' : 'Printer Toner';
 
   return (
     <div className="w-full px-6">
@@ -607,10 +608,10 @@ export function PrinterTonerPage() {
                 Consumables
               </TabButton>
               <TabButton active={tab === 'entries'} onClick={() => setTab('entries')}>
-                Entrées
+                Entries
               </TabButton>
               <TabButton active={tab === 'exits'} onClick={() => setTab('exits')}>
-                Sorties
+                Exits
               </TabButton>
               <TabButton active={tab === 'incidents'} onClick={() => setTab('incidents')}>
                 Printers
@@ -622,8 +623,36 @@ export function PrinterTonerPage() {
             <div className="space-y-4">
               <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm">
                 <div className="px-6 py-6">
-                  <h2 className="text-2xl font-bold tracking-tight">Printer Toner</h2>
-                  <p className="text-sm text-muted-foreground">Select a printer to view its toner dashboard.</p>
+                  <div className="page-hero">
+                    <div className="page-hero__topline" aria-hidden />
+                    <div className="page-hero__layout">
+                      <div className="min-w-0">
+                        <div className="page-hero__title-row">
+                          <div className="page-hero__icon" aria-hidden>
+                            <Printer className="h-[18px] w-[18px]" />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <span className="page-hero__badge">Printers</span>
+                            </div>
+
+                            <h2 className="page-hero__title">
+                              <span className="page-hero__title-stack">
+                                <span className="page-hero__title-glow" aria-hidden>
+                                  Printer Toner
+                                </span>
+                                <span className="page-hero__title-text">Printer Toner</span>
+                              </span>
+                            </h2>
+
+                            <div className="page-hero__underline" aria-hidden />
+                            <p className="page-hero__subtitle">Select a printer to view its toner dashboard.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -718,28 +747,58 @@ export function PrinterTonerPage() {
             </div>
           ) : (
             <div className="bg-card text-card-foreground rounded-xl border border-border shadow-sm">
-              <div className="px-6 pt-6 flex items-start justify-between gap-4">
-                <h2 className="text-2xl font-bold tracking-tight">{headerTitle}</h2>
+              <div className="px-6 pt-6">
+                <div className="page-hero">
+                  <div className="page-hero__topline" aria-hidden />
+                  <div className="page-hero__layout">
+                    <div className="min-w-0">
+                      <div className="page-hero__title-row">
+                        <div className="page-hero__icon" aria-hidden>
+                          <Printer className="h-[18px] w-[18px]" />
+                        </div>
 
-                {tab === 'entries' && (
-                  <button
-                    type="button"
-                    className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium"
-                    onClick={() => setAddEntryOpen(true)}
-                  >
-                    Ajouter
-                  </button>
-                )}
+                        <div className="min-w-0">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="page-hero__badge">Toner</span>
+                          </div>
 
-                {tab === 'exits' && (
-                  <button
-                    type="button"
-                    className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium"
-                    onClick={() => setAddExitOpen(true)}
-                  >
-                    Ajouter
-                  </button>
-                )}
+                          <h2 className="page-hero__title">
+                            <span className="page-hero__title-stack">
+                              <span className="page-hero__title-glow" aria-hidden>
+                                {headerTitle}
+                              </span>
+                              <span className="page-hero__title-text">{headerTitle}</span>
+                            </span>
+                          </h2>
+
+                          <div className="page-hero__underline" aria-hidden />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="page-hero__actions">
+                      {tab === 'entries' && (
+                        <button
+                          type="button"
+                          className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium"
+                          onClick={() => setAddEntryOpen(true)}
+                        >
+                          Add
+                        </button>
+                      )}
+
+                      {tab === 'exits' && (
+                        <button
+                          type="button"
+                          className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium"
+                          onClick={() => setAddExitOpen(true)}
+                        >
+                          Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {tab === 'consumables' && (
@@ -748,10 +807,10 @@ export function PrinterTonerPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-muted-foreground border-b border-border">
-                          <th className="text-left font-semibold py-3">Désignation</th>
+                          <th className="text-left font-semibold py-3">Designation</th>
                           <th className="text-left font-semibold py-3">Code Article</th>
-                          <th className="text-left font-semibold py-3">Entrées</th>
-                          <th className="text-left font-semibold py-3">Sorties</th>
+                          <th className="text-left font-semibold py-3">Entries</th>
+                          <th className="text-left font-semibold py-3">Exits</th>
                           <th className="text-left font-semibold py-3">Stock</th>
                         </tr>
                       </thead>
@@ -777,10 +836,10 @@ export function PrinterTonerPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-muted-foreground border-b border-border">
-                          <th className="text-left font-semibold py-3">Date d'entrée</th>
+                          <th className="text-left font-semibold py-3">Entry date</th>
                           <th className="text-left font-semibold py-3">Article</th>
                           <th className="text-left font-semibold py-3">Code Article</th>
-                          <th className="text-left font-semibold py-3">Quantité</th>
+                          <th className="text-left font-semibold py-3">Quantity</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -804,10 +863,10 @@ export function PrinterTonerPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-muted-foreground border-b border-border">
-                          <th className="text-left font-semibold py-3">Date de sortie</th>
+                          <th className="text-left font-semibold py-3">Exit date</th>
                           <th className="text-left font-semibold py-3">Nom Article</th>
                           <th className="text-left font-semibold py-3">Code Article</th>
-                          <th className="text-left font-semibold py-3">Quantité</th>
+                          <th className="text-left font-semibold py-3">Quantity</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -892,8 +951,8 @@ export function PrinterTonerPage() {
         <DialogContent className="sm:max-w-xl">
           <form onSubmit={submitEntry} className="space-y-4">
             <DialogHeader>
-              <DialogTitle>Ajouter une entrée</DialogTitle>
-              <DialogDescription>Date, article, code article et quantité.</DialogDescription>
+              <DialogTitle>Add an entry</DialogTitle>
+              <DialogDescription>Date, item, item code, and quantity.</DialogDescription>
             </DialogHeader>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -906,7 +965,7 @@ export function PrinterTonerPage() {
                   required
                 >
                   <option value="" disabled>
-                    {consumables.length ? 'Sélectionner…' : 'Aucun consumable disponible'}
+                    {consumables.length ? 'Select…' : 'No consumables available'}
                   </option>
                   {consumables.map((c) => (
                     <option key={c.id} value={String(c.id)}>
@@ -928,7 +987,7 @@ export function PrinterTonerPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Quantité</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Quantity</label>
                 <input
                   type="number"
                   className="w-full h-10 rounded-md border border-border bg-background px-3 text-foreground"
@@ -948,14 +1007,14 @@ export function PrinterTonerPage() {
                 onClick={() => setAddEntryOpen(false)}
                 disabled={entrySaving}
               >
-                Annuler
+                Cancel
               </button>
               <button
                 type="submit"
                 className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
                 disabled={entrySaving || !consumables.length}
               >
-                {entrySaving ? 'Enregistrement…' : 'Ajouter'}
+                {entrySaving ? 'Saving…' : 'Add'}
               </button>
             </DialogFooter>
           </form>
@@ -972,8 +1031,8 @@ export function PrinterTonerPage() {
         <DialogContent className="sm:max-w-xl">
           <form onSubmit={submitExit} className="space-y-4">
             <DialogHeader>
-              <DialogTitle>Ajouter une sortie</DialogTitle>
-              <DialogDescription>Date, consumable et quantité.</DialogDescription>
+              <DialogTitle>Add an exit</DialogTitle>
+              <DialogDescription>Date, consumable, and quantity.</DialogDescription>
             </DialogHeader>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -986,7 +1045,7 @@ export function PrinterTonerPage() {
                   required
                 >
                   <option value="" disabled>
-                    {consumables.length ? 'Sélectionner…' : 'Aucun consumable disponible'}
+                    {consumables.length ? 'Select…' : 'No consumables available'}
                   </option>
                   {consumables.map((c) => (
                     <option key={c.id} value={String(c.id)}>
@@ -1008,7 +1067,7 @@ export function PrinterTonerPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Quantité</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Quantity</label>
                 <input
                   type="number"
                   className="w-full h-10 rounded-md border border-border bg-background px-3 text-foreground"
@@ -1028,14 +1087,14 @@ export function PrinterTonerPage() {
                 onClick={() => setAddExitOpen(false)}
                 disabled={exitSaving}
               >
-                Annuler
+                Cancel
               </button>
               <button
                 type="submit"
                 className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
                 disabled={exitSaving || !consumables.length}
               >
-                {exitSaving ? 'Enregistrement…' : 'Ajouter'}
+                {exitSaving ? 'Saving…' : 'Add'}
               </button>
             </DialogFooter>
           </form>

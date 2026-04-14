@@ -75,20 +75,47 @@ export function InventoryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Inventory</h1>
-          <p className="text-muted-foreground mt-1">IT asset management</p>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <Search className="h-[18px] w-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Inventory</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Inventory
+                    </span>
+                    <span className="page-hero__title-text">Inventory</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">IT asset management</p>
+              </div>
+            </div>
+          </div>
+
+          {canManageInventory && (
+            <div className="page-hero__actions">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all font-medium"
+              >
+                <Plus className="w-5 h-5" />
+                Add asset
+              </button>
+            </div>
+          )}
         </div>
-        {canManageInventory && (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all font-medium"
-          >
-            <Plus className="w-5 h-5" />
-            Add asset
-          </button>
-        )}
       </div>
 
       {/* Filters */}

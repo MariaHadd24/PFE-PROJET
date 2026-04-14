@@ -1,17 +1,17 @@
 import type { UserRole } from '../types';
 
 export const ROLE_LABEL: Record<UserRole, string> = {
-  Admin: 'Administrateur IT',
-  Technician: 'Technicien',
+  Admin: 'IT Administrator',
+  Technician: 'Technician',
   Manager: 'Manager',
-  Reader: 'Lecteur',
+  Reader: 'Reader',
 };
 
 export const ROLE_DESCRIPTION: Record<UserRole, string> = {
-  Admin: 'Paramétrage global, gestion des référentiels, droits, supervision.',
-  Technician: 'Inventaire, mouvements, affectations, maintenance.',
-  Manager: "Validation des demandes d’achat, suivi des KPI.",
-  Reader: 'Consultation uniquement (tableaux, fiches, Dashboard).',
+  Admin: 'Global configuration, reference data, permissions, and monitoring.',
+  Technician: 'Inventory, movements, assignments, and maintenance.',
+  Manager: 'Approves purchase requests and tracks KPIs.',
+  Reader: 'Read-only access (tables, details, dashboard).',
 };
 
 export type AppPage =

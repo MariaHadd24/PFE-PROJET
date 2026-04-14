@@ -1649,11 +1649,18 @@ def undo_audit_log(log_id: str, request: Request = None):
         raise HTTPException(status_code=404, detail="Not found")
 
     action = str(getattr(log, "action", "") or "").strip().upper()
-    if action not in ("UPDATE", "DELETE"):
-        raise HTTPException(status_code=409, detail="Only UPDATE/DELETE audit logs can be undone")
+    if action not in ("CREATE", "UPDATE", "DELETE"):
+        raise HTTPException(status_code=409, detail="Only CREATE/UPDATE/DELETE audit logs can be undone")
 
     entity = str(getattr(log, "entity", "") or "").strip()
     entity_id = str(getattr(log, "entityId", "") or "").strip()
+
+    details = getattr(log, "details", None) or {}
+    if not entity_id and isinstance(details, dict):
+        created = details.get("created") or details.get("after") or details.get("payload")
+        if isinstance(created, dict):
+            entity_id = str(created.get("id") or "").strip()
+
     if not entity or not entity_id:
         raise HTTPException(status_code=422, detail="Audit log has no entity/entityId")
 
@@ -1663,22 +1670,23 @@ def undo_audit_log(log_id: str, request: Request = None):
 
     repo, model_cls = target
 
-    details = getattr(log, "details", None) or {}
     before = details.get("before") if isinstance(details, dict) else None
-    if before is None:
+    if action in ("UPDATE", "DELETE") and before is None:
         raise HTTPException(status_code=409, detail="Audit log has no 'before' snapshot to restore")
 
-    if hasattr(before, "model_dump"):
-        before_data = before.model_dump()  # type: ignore[attr-defined]
-    else:
-        before_data = before
+    mapped_snapshot_data = None
+    if action in ("UPDATE", "DELETE"):
+        if hasattr(before, "model_dump"):
+            before_data = before.model_dump()  # type: ignore[attr-defined]
+        else:
+            before_data = before
 
-    if not isinstance(before_data, dict):
-        raise HTTPException(status_code=409, detail="Invalid 'before' snapshot")
+        if not isinstance(before_data, dict):
+            raise HTTPException(status_code=409, detail="Invalid 'before' snapshot")
 
-    raw_snapshot_data = dict(before_data)
-    raw_snapshot_data["id"] = str(raw_snapshot_data.get("id") or entity_id)
-    mapped_snapshot_data = _map_redacted(raw_snapshot_data)
+        raw_snapshot_data = dict(before_data)
+        raw_snapshot_data["id"] = str(raw_snapshot_data.get("id") or entity_id)
+        mapped_snapshot_data = _map_redacted(raw_snapshot_data)
 
     def _validate_or_raise(data: dict):
         try:
@@ -1701,7 +1709,17 @@ def undo_audit_log(log_id: str, request: Request = None):
 
     try:
         existing = repo.get(entity_id)
-        if action == "DELETE":
+        if action == "CREATE":
+            if existing is None:
+                # Idempotent: entity is already gone, treat as already undone.
+                result_item = None
+                applied = "NOOP"
+            else:
+                # Undo CREATE by deleting the created entity.
+                repo.delete(entity_id)
+                result_item = existing
+                applied = "DELETE"
+        elif action == "DELETE":
             if existing is not None:
                 raise HTTPException(status_code=409, detail="Entity already exists; cannot restore")
 

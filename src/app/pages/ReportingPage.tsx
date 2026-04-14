@@ -196,31 +196,53 @@ export function ReportingPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Advanced Reporting &amp; Analytics</h1>
-          <p className="text-muted-foreground mt-1">
-            Live Power BI integration and cross-departmental KPI dashboards
-          </p>
-        </div>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <BarChart3 className="h-[18px] w-[18px]" />
+              </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 border border-border bg-card text-foreground px-4 py-2 rounded-lg hover:bg-muted/30 transition-all font-medium"
-          >
-            <FileDown className="w-4 h-4" />
-            Export Excel
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenFullDashboard}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-[#1B4F91] to-[#2563EB] text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all font-medium"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Open Full Dashboard
-          </button>
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Reporting</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Advanced Reporting &amp; Analytics
+                    </span>
+                    <span className="page-hero__title-text">Advanced Reporting &amp; Analytics</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Live Power BI integration and cross-departmental KPI dashboards</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="page-hero__actions">
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 border border-border bg-card text-foreground px-4 py-2 rounded-lg hover:bg-muted/30 transition-all font-medium"
+            >
+              <FileDown className="w-4 h-4" />
+              Export Excel
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenFullDashboard}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-[#1B4F91] to-[#2563EB] text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all font-medium"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open Full Dashboard
+            </button>
+          </div>
         </div>
       </div>
 

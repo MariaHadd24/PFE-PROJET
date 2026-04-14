@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { AlertTriangle } from 'lucide-react';
+
 import { toast } from 'sonner';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { useData } from '../context/DataContext';
@@ -274,7 +276,7 @@ export function PrinterIncidentsPage() {
   const submitIncident = useCallback(async () => {
     const claimDate = String(formClaimDate ?? '').trim();
     if (!claimDate) {
-      toast.error('Date réclamation requise');
+      toast.error('Claim date is required');
       return;
     }
 
@@ -335,10 +337,10 @@ export function PrinterIncidentsPage() {
     try {
       if (editing?.id) {
         await apiPatch<PrinterTonerIncident>(`/printer-toner-incidents/${encodeURIComponent(editing.id)}`, payload);
-        toast.success('Incident modifié');
+        toast.success('Incident updated');
       } else {
         await apiPost<PrinterTonerIncident>('/printer-toner-incidents', { ...payload, status: 'NON_INTERVENUE' });
-        toast.success('Incident ajouté');
+        toast.success('Incident added');
       }
 
       resetForm();
@@ -347,7 +349,7 @@ export function PrinterIncidentsPage() {
       await load();
     } catch (e: any) {
       const msg = String(e?.message ?? 'Unable to save incident');
-      toast.error(editing?.id ? 'Modification incident' : 'Ajout incident', { description: msg });
+      toast.error(editing?.id ? 'Update incident' : 'Add incident', { description: msg });
     } finally {
       setSaving(false);
     }
@@ -355,15 +357,15 @@ export function PrinterIncidentsPage() {
 
   const deleteIncident = useCallback(
     async (id: string) => {
-      if (!window.confirm('Supprimer cet incident ?')) return;
+      if (!window.confirm('Delete this incident?')) return;
       setDeletingId(id);
       try {
         await apiDelete<{ ok: boolean }>(`/printer-toner-incidents/${encodeURIComponent(id)}`);
         setRows((prev) => prev.filter((r) => r.id !== id));
-        toast.success('Incident supprimé');
+        toast.success('Incident deleted');
       } catch (e: any) {
         const msg = String(e?.message ?? 'Unable to delete incident');
-        toast.error('Suppression incident', { description: msg });
+        toast.error('Delete incident', { description: msg });
       } finally {
         setDeletingId(null);
       }
@@ -377,10 +379,10 @@ export function PrinterIncidentsPage() {
       try {
         const updated = await apiPost<PrinterTonerIncident>(`/printer-toner-incidents/${encodeURIComponent(id)}/mark-intervened`, {});
         setRows((prev) => prev.map((r) => (r.id === id ? updated : r)));
-        toast.success('Statut mis à jour');
+        toast.success('Status updated');
       } catch (e: any) {
         const msg = String(e?.message ?? 'Unable to update incident');
-        toast.error('Mise à jour incident', { description: msg });
+        toast.error('Update incident', { description: msg });
       } finally {
         setMarkingId(null);
       }
@@ -392,20 +394,47 @@ export function PrinterIncidentsPage() {
     <div className="w-full">
       <div className="w-full bg-card text-card-foreground rounded-xl border border-border shadow-sm">
         <div className="px-6 pt-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Incidents</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {loading ? 'Chargement…' : error ? 'Erreur de chargement' : `${sortedRows.length} incident(s)`}
-              </p>
+          <div className="page-hero">
+            <div className="page-hero__topline" aria-hidden />
+            <div className="page-hero__layout">
+              <div className="min-w-0">
+                <div className="page-hero__title-row">
+                  <div className="page-hero__icon" aria-hidden>
+                    <AlertTriangle className="h-[18px] w-[18px]" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span className="page-hero__badge">Printers</span>
+                    </div>
+
+                    <h2 className="page-hero__title">
+                      <span className="page-hero__title-stack">
+                        <span className="page-hero__title-glow" aria-hidden>
+                          Incidents
+                        </span>
+                        <span className="page-hero__title-text">Incidents</span>
+                      </span>
+                    </h2>
+
+                    <div className="page-hero__underline" aria-hidden />
+                    <p className="page-hero__subtitle">
+                      {loading ? 'Loading…' : error ? 'Loading error' : `${sortedRows.length} incident(s)`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="page-hero__actions">
+                <button
+                  className="rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium disabled:opacity-60"
+                  disabled={saving}
+                  onClick={() => openAdd()}
+                >
+                  Add
+                </button>
+              </div>
             </div>
-            <button
-              className="rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium disabled:opacity-60"
-              disabled={saving}
-              onClick={() => openAdd()}
-            >
-              Ajouter
-            </button>
           </div>
         </div>
 
@@ -413,8 +442,8 @@ export function PrinterIncidentsPage() {
           <Dialog open={addOpen} onOpenChange={(open) => (!saving ? setAddOpen(open) : undefined)}>
             <DialogContent className="sm:max-w-xl">
               <DialogHeader>
-                <DialogTitle>{editing?.id ? 'Modifier un incident' : 'Ajouter un incident'}</DialogTitle>
-                <DialogDescription>Renseigne au minimum la date de réclamation.</DialogDescription>
+                <DialogTitle>{editing?.id ? 'Edit incident' : 'Add incident'}</DialogTitle>
+                <DialogDescription>Please provide at least the claim date.</DialogDescription>
               </DialogHeader>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -425,9 +454,9 @@ export function PrinterIncidentsPage() {
                     value={formSite}
                     onChange={(e) => setFormSite(e.target.value)}
                   >
-                    <option value="">Sélectionner…</option>
+                    <option value="">Select…</option>
                     {formSite && !siteOptions.some((o) => o.value === formSite) ? (
-                      <option value={formSite}>{`${formSite} • (hors liste)`}</option>
+                      <option value={formSite}>{`${formSite} • (not in list)`}</option>
                     ) : null}
                     {siteOptions.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -447,7 +476,7 @@ export function PrinterIncidentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Type de demande</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Request type</label>
                   <input
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     value={formDemandType}
@@ -466,7 +495,7 @@ export function PrinterIncidentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">N° série (SN)</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Serial number (SN)</label>
                   <select
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     value={formPrinterSerial}
@@ -485,9 +514,9 @@ export function PrinterIncidentsPage() {
                       }
                     }}
                   >
-                    <option value="">Sélectionner…</option>
+                    <option value="">Select…</option>
                     {formPrinterSerial && !printerBySerial.has(formPrinterSerial) ? (
-                      <option value={formPrinterSerial}>{`${formPrinterSerial} • (hors liste)`}</option>
+                      <option value={formPrinterSerial}>{`${formPrinterSerial} • (not in list)`}</option>
                     ) : null}
                     {printerAssets.map((a: any) => {
                       const sn = String(a?.serialNumber ?? '').trim();
@@ -503,7 +532,7 @@ export function PrinterIncidentsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Modèle</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Model</label>
                   <input
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     value={formPrinterModel}
@@ -514,7 +543,7 @@ export function PrinterIncidentsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Date réclamation <span className="text-destructive">*</span>
+                    Claim date <span className="text-destructive">*</span>
                   </label>
                   <input
                     type="datetime-local"
@@ -524,12 +553,12 @@ export function PrinterIncidentsPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">Nature du problème</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Issue</label>
                   <input
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     value={formProblemNature}
                     onChange={(e) => setFormProblemNature(e.target.value)}
-                    placeholder="Papier bloqué…"
+                    placeholder="Paper jam…"
                   />
                 </div>
               </div>
@@ -544,7 +573,7 @@ export function PrinterIncidentsPage() {
                     setEditing(null);
                   }}
                 >
-                  Annuler
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -552,7 +581,7 @@ export function PrinterIncidentsPage() {
                   disabled={saving}
                   onClick={() => void submitIncident()}
                 >
-                  {saving ? 'Enregistrement…' : editing?.id ? 'Modifier' : 'Ajouter'}
+                  {saving ? 'Saving…' : editing?.id ? 'Update' : 'Add'}
                 </button>
               </DialogFooter>
             </DialogContent>
@@ -560,11 +589,11 @@ export function PrinterIncidentsPage() {
 
           <div className="mt-4">
             {loading ? (
-              <div className="text-sm text-muted-foreground">Chargement des incidents…</div>
+              <div className="text-sm text-muted-foreground">Loading incidents…</div>
             ) : error ? (
               <div className="text-sm text-destructive">{error}</div>
             ) : sortedRows.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Aucun incident trouvé.</div>
+              <div className="text-sm text-muted-foreground">No incidents found.</div>
             ) : (
               <div className="overflow-x-auto">
                 {rawHeaders.length > 0 ? (
@@ -576,7 +605,7 @@ export function PrinterIncidentsPage() {
                             {h}
                           </th>
                         ))}
-                        <th className="text-left font-semibold py-3 pr-3 whitespace-nowrap">Action</th>
+                        <th className="text-left font-semibold py-3 pr-3 whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -600,7 +629,7 @@ export function PrinterIncidentsPage() {
                                     disabled={markingId === i.id}
                                     onClick={() => void markIntervened(i.id)}
                                   >
-                                    {markingId === i.id ? '…' : 'Marquer intervenue'}
+                                    {markingId === i.id ? '…' : 'Mark as intervened'}
                                   </button>
                                 ) : (
                                   <span className="text-muted-foreground">{statusLabel(st)}</span>
@@ -610,14 +639,14 @@ export function PrinterIncidentsPage() {
                                   disabled={saving || deletingId === i.id}
                                   onClick={() => openEdit(i)}
                                 >
-                                  Modifier
+                                  Edit
                                 </button>
                                 <button
                                   className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent text-destructive disabled:opacity-60"
                                   disabled={deletingId === i.id}
                                   onClick={() => void deleteIncident(i.id)}
                                 >
-                                  {deletingId === i.id ? '…' : 'Supprimer'}
+                                  {deletingId === i.id ? '…' : 'Delete'}
                                 </button>
                               </div>
                             </td>
@@ -637,10 +666,10 @@ export function PrinterIncidentsPage() {
                         <th className="text-left font-semibold py-3">Nature</th>
                         <th className="text-left font-semibold py-3">S/N</th>
                         <th className="text-left font-semibold py-3">Model</th>
-                        <th className="text-left font-semibold py-3">Réclamation</th>
-                        <th className="text-left font-semibold py-3">Intervention</th>
-                        <th className="text-left font-semibold py-3">Durée</th>
-                        <th className="text-left font-semibold py-3">Action</th>
+                        <th className="text-left font-semibold py-3">Claim</th>
+                        <th className="text-left font-semibold py-3">Intervention date</th>
+                        <th className="text-left font-semibold py-3">Duration</th>
+                        <th className="text-left font-semibold py-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -669,7 +698,7 @@ export function PrinterIncidentsPage() {
                                     disabled={markingId === i.id}
                                     onClick={() => void markIntervened(i.id)}
                                   >
-                                    {markingId === i.id ? '…' : 'Marquer intervenue'}
+                                    {markingId === i.id ? '…' : 'Mark as intervened'}
                                   </button>
                                 ) : (
                                   <span className="text-muted-foreground">{statusLabel(st)}</span>
@@ -679,14 +708,14 @@ export function PrinterIncidentsPage() {
                                   disabled={saving || deletingId === i.id}
                                   onClick={() => openEdit(i)}
                                 >
-                                  Modifier
+                                  Edit
                                 </button>
                                 <button
                                   className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent text-destructive disabled:opacity-60"
                                   disabled={deletingId === i.id}
                                   onClick={() => void deleteIncident(i.id)}
                                 >
-                                  {deletingId === i.id ? '…' : 'Supprimer'}
+                                  {deletingId === i.id ? '…' : 'Delete'}
                                 </button>
                               </div>
                             </td>

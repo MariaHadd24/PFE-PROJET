@@ -516,9 +516,35 @@ export function AdminPage() {
   return (
     <div className="space-y-6 relative">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Administration</h1>
-        <p className="text-muted-foreground mt-1">Master data and user management</p>
+      <div className="page-hero">
+        <div className="page-hero__topline" aria-hidden />
+        <div className="page-hero__layout">
+          <div className="min-w-0">
+            <div className="page-hero__title-row">
+              <div className="page-hero__icon" aria-hidden>
+                <Building2 className="h-[18px] w-[18px]" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="page-hero__badge">Administration</span>
+                </div>
+
+                <h1 className="page-hero__title">
+                  <span className="page-hero__title-stack">
+                    <span className="page-hero__title-glow" aria-hidden>
+                      Administration
+                    </span>
+                    <span className="page-hero__title-text">Administration</span>
+                  </span>
+                </h1>
+
+                <div className="page-hero__underline" aria-hidden />
+                <p className="page-hero__subtitle">Master data and user management</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}

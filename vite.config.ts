@@ -26,6 +26,13 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: ['pfe.leoni'],
     proxy: {
+      // Explicit WS endpoint proxy (more reliable than relying on the '/api' matcher)
+      '/api/ws': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+        ws: true,
+        rewrite: (p) => p.replace(/^\/api/, ''),
+      },
       '/api': {
         target: apiProxyTarget,
         changeOrigin: true,

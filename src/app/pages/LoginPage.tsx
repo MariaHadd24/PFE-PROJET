@@ -335,9 +335,9 @@ export function LoginPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-blue-900 mb-0.5">Comptes de démonstration</p>
+                  <p className="text-sm font-semibold text-blue-900 mb-0.5">Demo accounts</p>
                   <p className="text-xs text-blue-700">
-                    Mot de passe (test): <span className="font-mono">{DEMO_PASSWORD}</span>
+                    Password (test): <span className="font-mono">{DEMO_PASSWORD}</span>
                   </p>
                   <div className="mt-2 grid grid-cols-1 gap-0.5">
                     {DEMO_ACCOUNTS.map((a) => (

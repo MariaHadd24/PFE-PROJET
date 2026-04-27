@@ -499,6 +499,8 @@ class PurchaseRequest(BaseModel):
     id: str
     requester: str
     department: str
+    bce: Optional[str] = None
+    bci: Optional[str] = None
     budget: float
     justification: str
     status: PRStatus
@@ -510,6 +512,8 @@ class PurchaseRequestCreate(BaseModel):
     id: Optional[str] = None
     requester: str
     department: str
+    bce: Optional[str] = None
+    bci: Optional[str] = None
     budget: float
     justification: str
     status: PRStatus = "Draft"
@@ -520,6 +524,8 @@ class PurchaseRequestCreate(BaseModel):
 class PurchaseRequestUpdate(BaseModel):
     requester: Optional[str] = None
     department: Optional[str] = None
+    bce: Optional[str] = None
+    bci: Optional[str] = None
     budget: Optional[float] = None
     justification: Optional[str] = None
     status: Optional[PRStatus] = None
@@ -544,6 +550,8 @@ class POLineCreate(BaseModel):
 class PurchaseOrder(BaseModel):
     id: str
     prId: str
+    bce: Optional[str] = None
+    bci: Optional[str] = None
     supplier: str
     status: POStatus
     total: float
@@ -554,6 +562,8 @@ class PurchaseOrder(BaseModel):
 class PurchaseOrderCreate(BaseModel):
     id: Optional[str] = None
     prId: str
+    bce: Optional[str] = None
+    bci: Optional[str] = None
     supplier: str
     status: POStatus = "Draft"
     total: float
@@ -563,6 +573,8 @@ class PurchaseOrderCreate(BaseModel):
 
 class PurchaseOrderUpdate(BaseModel):
     prId: Optional[str] = None
+    bce: Optional[str] = None
+    bci: Optional[str] = None
     supplier: Optional[str] = None
     status: Optional[POStatus] = None
     total: Optional[float] = None

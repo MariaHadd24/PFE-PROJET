@@ -191,6 +191,8 @@ CREATE TABLE dbo.purchase_requests (
   id          NVARCHAR(64)   NOT NULL,
   requester   NVARCHAR(200)  NOT NULL,
   department  NVARCHAR(200)  NOT NULL,
+  bce         NVARCHAR(100)  NULL,
+  bci         NVARCHAR(100)  NULL,
   budget      DECIMAL(18,2)  NOT NULL,
   justification NVARCHAR(MAX) NOT NULL,
   status      NVARCHAR(20)   NOT NULL,
@@ -216,6 +218,8 @@ CREATE INDEX IX_pr_lines_purchaseRequestId ON dbo.pr_lines(purchaseRequestId);
 CREATE TABLE dbo.purchase_orders (
   id          NVARCHAR(64)  NOT NULL,
   prId        NVARCHAR(64)  NOT NULL,
+  bce         NVARCHAR(100) NULL,
+  bci         NVARCHAR(100) NULL,
   supplier    NVARCHAR(200) NOT NULL,
   status      NVARCHAR(20)  NOT NULL,
   total       DECIMAL(18,2) NOT NULL,

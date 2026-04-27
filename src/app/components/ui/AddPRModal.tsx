@@ -32,6 +32,8 @@ export function AddPRModal({ isOpen, onClose, onAdd, categories, departments, us
   const [formData, setFormData] = useState({
     requester: '',
     department: '',
+    bce: '',
+    bci: '',
     status: 'Draft' as PRStatus,
     justification: ''
   });
@@ -131,6 +133,8 @@ export function AddPRModal({ isOpen, onClose, onAdd, categories, departments, us
       id: `PR-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
       requester: formData.requester,
       department: formData.department,
+      bce: formData.bce.trim() ? formData.bce.trim() : undefined,
+      bci: formData.bci.trim() ? formData.bci.trim() : undefined,
       status: formData.status,
       budget: calculateTotal(),
       createdDate: new Date().toISOString(),
@@ -146,6 +150,8 @@ export function AddPRModal({ isOpen, onClose, onAdd, categories, departments, us
     setFormData({
       requester: '',
       department: '',
+      bce: '',
+      bci: '',
       status: 'Draft',
       justification: ''
     });
@@ -199,6 +205,32 @@ export function AddPRModal({ isOpen, onClose, onAdd, categories, departments, us
                 {errors.requester && (
                   <p className="mt-1 text-sm text-destructive">{errors.requester}</p>
                 )}
+              </div>
+
+              {/* BCE */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">BCE</label>
+                <input
+                  type="text"
+                  name="bce"
+                  value={formData.bce}
+                  onChange={handleChange}
+                  placeholder="e.g. BCE-2026-001"
+                  className="w-full px-3 py-2 border border-border bg-card text-foreground placeholder:text-muted-foreground rounded-lg focus:ring-2 focus:ring-[#1F3C88] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* BCI */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">BCI</label>
+                <input
+                  type="text"
+                  name="bci"
+                  value={formData.bci}
+                  onChange={handleChange}
+                  placeholder="e.g. BCI-2026-001"
+                  className="w-full px-3 py-2 border border-border bg-card text-foreground placeholder:text-muted-foreground rounded-lg focus:ring-2 focus:ring-[#1F3C88] focus:border-transparent outline-none"
+                />
               </div>
 
               {/* Department */}

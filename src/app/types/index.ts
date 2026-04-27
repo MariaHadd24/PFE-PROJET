@@ -160,6 +160,8 @@ export interface PurchaseRequest {
   id: string;
   requester: string;
   department: string;
+  bce?: string;
+  bci?: string;
   budget: number;
   justification: string;
   status: PRStatus;
@@ -177,6 +179,8 @@ export interface PRLine {
 export interface PurchaseOrder {
   id: string;
   prId: string;
+  bce?: string;
+  bci?: string;
   supplier: string;
   status: POStatus;
   total: number;

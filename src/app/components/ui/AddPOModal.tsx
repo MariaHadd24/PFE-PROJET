@@ -29,6 +29,8 @@ interface POItem {
 export function AddPOModal({ isOpen, onClose, onAdd, purchaseRequests, suppliers }: AddPOModalProps) {
   const [formData, setFormData] = useState({
     prId: '',
+    bce: '',
+    bci: '',
     supplier: '',
     status: 'Draft' as POStatus,
     expectedDelivery: '',
@@ -135,6 +137,8 @@ export function AddPOModal({ isOpen, onClose, onAdd, purchaseRequests, suppliers
     const newPO: PurchaseOrder = {
       id: `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
       prId: formData.prId,
+      bce: formData.bce.trim() ? formData.bce.trim() : undefined,
+      bci: formData.bci.trim() ? formData.bci.trim() : undefined,
       supplier: formData.supplier,
       status: formData.status,
       total: calculateTotal(),
@@ -149,6 +153,8 @@ export function AddPOModal({ isOpen, onClose, onAdd, purchaseRequests, suppliers
   const handleClose = () => {
     setFormData({
       prId: '',
+      bce: '',
+      bci: '',
       supplier: '',
       status: 'Draft',
       expectedDelivery: '',
@@ -210,6 +216,36 @@ export function AddPOModal({ isOpen, onClose, onAdd, purchaseRequests, suppliers
                 {approvedPRs.length === 0 && (
                   <p className="mt-1 text-sm text-orange-600">No approved PR available</p>
                 )}
+              </div>
+
+              {/* BCE */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  BCE
+                </label>
+                <input
+                  type="text"
+                  name="bce"
+                  value={formData.bce}
+                  onChange={handleChange}
+                  placeholder="e.g. BCE-2026-001"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B4F91] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* BCI */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  BCI
+                </label>
+                <input
+                  type="text"
+                  name="bci"
+                  value={formData.bci}
+                  onChange={handleChange}
+                  placeholder="e.g. BCI-2026-001"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B4F91] focus:border-transparent outline-none"
+                />
               </div>
 
               {/* Supplier */}

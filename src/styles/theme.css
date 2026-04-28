@@ -394,6 +394,11 @@
     overflow: hidden;
   }
 
+  /* Opt-in: allow dropdowns/tooltips inside table cells to overflow */
+  .premium-table.premium-table--overflow-visible {
+    overflow: visible;
+  }
+
   .premium-table thead {
     background:
       linear-gradient(

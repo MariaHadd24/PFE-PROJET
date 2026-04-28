@@ -41,6 +41,30 @@ function includesAny(haystack: string, needles: string[]) {
   return needles.some((n) => haystack.includes(n));
 }
 
+function isSiteRelatedQuestion(normalized: string) {
+  // Only allow questions about this application's modules/features.
+  // Keep this intentionally broad: if the user mentions any module term, we consider it in-scope.
+  return includesAny(normalized, [
+    // General / navigation
+    'site', 'app', 'application', 'module', 'menu', 'page', 'dashboard',
+    // Stock / assets
+    'asset', 'assets', 'stock', 'inventaire', 'inventory', 'available', 'assigned', 'inrepair', 'retired',
+    'import', 'excel', 'xlsx', 'xls', 'export', 'qr', 'scan', 'barcode', 'threshold', 'low stock',
+    // Assignments
+    'assignment', 'assignments', 'assign', 'affectation', 'affecter',
+    // Orders / purchasing
+    'order', 'orders', 'achat', 'achats', 'purchase', 'procurement', 'pr', 'po',
+    'purchase request', 'purchase order', 'bon de commande', 'bc', 'bl',
+    // Maintenance
+    'maintenance', 'ticket', 'tickets', 'repair', 'reparation',
+    // Admin / audit
+    'admin', 'administration', 'utilisateur', 'users', 'sites', 'categories', 'suppliers', 'departments',
+    'audit', 'logs', 'journal',
+    // Vendor / reporting
+    'vendor', 'fournisseur', 'portal', 'report', 'reporting', 'rapport',
+  ]);
+}
+
 export function ChatbotWidget() {
   const assistantIconUrl = '/chatbot-icon.png';
   const [isOpen, setIsOpen] = useState(false);
@@ -181,6 +205,21 @@ export function ChatbotWidget() {
     if (!q) {
       return {
         text: 'Type a question (e.g. “import excel”, “maintenance ticket”, “new asset”…).',
+      };
+    }
+
+    // Hard guard: out-of-scope questions should not be answered.
+    // This prevents the LLM from responding to arbitrary/general questions.
+    if (!isSiteRelatedQuestion(q) && !includesAny(q, ['bonjour', 'salut', 'hello', 'hi'])) {
+      return {
+        text:
+          'I can only answer questions about this site and its modules (Stock, Assignments, Orders PR/PO, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting).',
+        actions: [
+          { label: 'Dashboard', link: '/dashboard' },
+          { label: 'Assets IT', link: '/stock-inventory' },
+          { label: 'Orders', link: '/orders' },
+          { label: 'Maintenance', link: '/maintenance' },
+        ],
       };
     }
 
@@ -399,7 +438,10 @@ export function ChatbotWidget() {
     void (async () => {
       try {
         const history = buildHistoryForLlm();
-        const res = await chatAssistant({ message: trimmed, history });
+        const message =
+          'You are a site assistant for an internal web application. Only answer questions about the site features and navigation (Stock/Assets, Assignments, Orders PR/PO, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting). If the question is unrelated, reply that you can only help with this site.\n\nUser question: ' +
+          trimmed;
+        const res = await chatAssistant({ message, history });
         const elapsed = Date.now() - startedAt;
         const remaining = delayMs - elapsed;
         if (remaining > 0) await sleep(remaining);

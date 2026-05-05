@@ -13,7 +13,23 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useData } from '../../context/DataContext';
-import { formatMAD } from '../../lib/money';
+
+const NavLink = React.forwardRef<
+  HTMLAnchorElement,
+  { href: string; children: React.ReactNode; className?: string }
+>(({ href, children, className }, ref) => {
+  return (
+    <motion.a
+      ref={ref}
+      href={href}
+      className={className}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      {children}
+    </motion.a>
+  );
+});
 
 export function Navbar({
   sidebarOpen,
@@ -28,8 +44,6 @@ export function Navbar({
   const {
     assets,
     users: usersList,
-    purchaseRequests,
-    purchaseOrders,
     maintenanceTickets,
   } = useData();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -152,6 +166,13 @@ export function Navbar({
         icon: <FileText className="w-4 h-4" />,
         onSelect: () => navigate('/licences'),
       },
+      {
+        id: 'nav-pdf-history',
+        label: 'Historique PDF',
+        group: 'Navigation',
+        icon: <FileText className="w-4 h-4" />,
+        onSelect: () => navigate('/pdf-history'),
+      },
     );
 
     for (const a of assets) {
@@ -176,28 +197,6 @@ export function Navbar({
       });
     }
 
-    for (const pr of purchaseRequests) {
-      items.push({
-        id: `pr:${pr.id}`,
-        label: pr.id,
-        sublabel: `${pr.department} • ${pr.status} • ${formatMAD(pr.budget)}`,
-        group: 'Orders',
-        icon: <FileText className="w-4 h-4" />,
-        onSelect: () => navigate('/orders'),
-      });
-    }
-
-    for (const po of purchaseOrders) {
-      items.push({
-        id: `po:${po.id}`,
-        label: po.id,
-        sublabel: `${po.supplier} • ${po.status} • ${formatMAD(po.total)}`,
-        group: 'Orders',
-        icon: <FileText className="w-4 h-4" />,
-        onSelect: () => navigate('/orders'),
-      });
-    }
-
     for (const t of maintenanceTickets) {
       items.push({
         id: `mt:${t.id}`,
@@ -210,7 +209,7 @@ export function Navbar({
     }
 
     return items;
-  }, [assets, maintenanceTickets, navigate, purchaseOrders, purchaseRequests, usersList]);
+  }, [assets, maintenanceTickets, navigate, usersList]);
 
   return (
     <div className="fixed top-0 left-0 right-0 h-20 bg-gradient-to-b from-white/95 via-white/90 to-white/85 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/85 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 z-40 shadow-lg transition-colors duration-300">

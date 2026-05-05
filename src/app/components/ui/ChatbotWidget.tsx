@@ -53,8 +53,8 @@ function isSiteRelatedQuestion(normalized: string) {
     // Assignments
     'assignment', 'assignments', 'assign', 'affectation', 'affecter',
     // Orders / purchasing
-    'order', 'orders', 'achat', 'achats', 'purchase', 'procurement', 'pr', 'po',
-    'purchase request', 'purchase order', 'bon de commande', 'bc', 'bl',
+    'order', 'orders', 'achat', 'achats', 'purchase', 'procurement',
+    'bon de commande', 'bc', 'bl',
     // Maintenance
     'maintenance', 'ticket', 'tickets', 'repair', 'reparation',
     // Admin / audit
@@ -80,8 +80,6 @@ export function ChatbotWidget() {
     assets,
     assignments,
     maintenanceTickets,
-    purchaseRequests,
-    purchaseOrders,
   } = useData();
 
   const suggestedQuestions = useMemo(
@@ -99,7 +97,7 @@ export function ChatbotWidget() {
   const greeting = useMemo(() => {
     const name = String(user?.name ?? '').trim();
     const who = name ? ` ${name}` : '';
-    return `Hi${who}! I’m the site assistant. I can only answer questions related to this application’s features (Stock, Assignments, Orders PR/PO, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting). Ask a question or click a suggestion.`;
+    return `Hi${who}! I’m the site assistant. I can only answer questions related to this application’s features (Stock, Assignments, Orders, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting). Ask a question or click a suggestion.`;
   }, [user?.name]);
 
   useEffect(() => {
@@ -199,8 +197,6 @@ export function ChatbotWidget() {
 
     const openTickets = maintenanceTickets.filter((t) => t.status === 'Open' || t.status === 'InProgress').length;
     const activeAssignments = assignments.filter((a) => (a.status ?? 'Active') === 'Active').length;
-    const prPending = purchaseRequests.filter((pr) => pr.status === 'Pending').length;
-    const poOrdered = purchaseOrders.filter((po) => po.status === 'Ordered').length;
 
     if (!q) {
       return {
@@ -213,7 +209,7 @@ export function ChatbotWidget() {
     if (!isSiteRelatedQuestion(q) && !includesAny(q, ['bonjour', 'salut', 'hello', 'hi'])) {
       return {
         text:
-          'I can only answer questions about this site and its modules (Stock, Assignments, Orders PR/PO, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting).',
+          'I can only answer questions about this site and its modules (Stock, Assignments, Orders, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting).',
         actions: [
           { label: 'Dashboard', link: '/dashboard' },
           { label: 'Assets IT', link: '/stock-inventory' },
@@ -225,7 +221,7 @@ export function ChatbotWidget() {
 
     if (includesAny(q, ['bonjour', 'salut', 'hello', 'hi'])) {
       return {
-        text: `Hi! I can help with stock, assignments, maintenance tickets, and purchasing (PR/PO).`,
+        text: `Hi! I can help with stock, assignments, orders, and maintenance tickets.`,
       };
     }
 
@@ -235,7 +231,7 @@ export function ChatbotWidget() {
           'Here are the available modules in this site:\n' +
           '- Assets IT (Excel import/export, QR scan, columns/views)\n' +
           '- Assignments\n' +
-          '- Orders (PR & PO)\n' +
+          '- Orders\n' +
           '- Maintenance (tickets)\n' +
           '- Administration (users, sites, categories, suppliers, departments)\n' +
           '- Audit Logs\n' +
@@ -273,9 +269,9 @@ export function ChatbotWidget() {
           actions: [{ label: 'Open Assignments', link: '/assignments' }],
         };
       }
-      if (includesAny(q, ['order', 'achat', 'pr', 'po', 'purchase'])) {
+      if (includesAny(q, ['order', 'achat', 'purchase'])) {
         return {
-          text: `Orders: PR pending ${prPending} • PO with status Ordered ${poOrdered}.`,
+          text: 'Orders: open the Orders page to view and manage orders.',
           actions: [{ label: 'Open Orders', link: '/orders' }],
         };
       }
@@ -284,9 +280,7 @@ export function ChatbotWidget() {
     if (includesAny(q, ['achat', 'achats', 'commande', 'commandes', 'orders', 'order', 'purchase', 'procurement'])) {
       return {
         text:
-          'For purchasing: open “Orders”.\n' +
-          '- PR (Purchase Request): “Purchase Requests” tab → “New PR”\n' +
-          '- PO (Purchase Order): “Purchase Orders” tab → “New PO”',
+          'For purchasing: open “Orders”, then create and track your orders. You can attach documents like BC/BL.',
         actions: [{ label: 'Go to Orders', link: '/orders' }],
       };
     }

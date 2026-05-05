@@ -1,30 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import { FileText } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Download, FileText, RefreshCw } from 'lucide-react';
+import { API_BASE_URL, apiGet } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { FaDownload, FaEnvelope, FaTrash } from 'react-icons/fa';
 
-import { apiGet, apiDelete, apiPost } from '../lib/api';
+type PdfItem = {
+  file: string;
+  size?: string;
+  generatedBy?: string;
+  date?: string; // unix seconds as string (see backend)
+};
 
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
+function formatEpochSeconds(seconds?: string): string {
+  const n = Number(seconds);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  const d = new Date(n * 1000);
   return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-
 export default function PdfHistoryPage() {
-  const [search, setSearch] = useState('');
-  const [dateFilter, setDateFilter] = useState('All Dates');
-  const [pdfs, setPdfs] = useState<any[]>([]);
+  const [items, setItems] = useState<PdfItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
 
   async function fetchPdfs() {
     setLoading(true);
     try {
-      const data = await apiGet<any[]>('/pdfs');
-      setPdfs(data);
-    } catch (e) {
-      setPdfs([]);
+      const data = await apiGet<PdfItem[]>('/pdfs');
+      setItems(Array.isArray(data) ? data : []);
+    } catch {
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -34,126 +40,79 @@ export default function PdfHistoryPage() {
     fetchPdfs();
   }, []);
 
-  const filtered = pdfs.filter(pdf =>
-    pdf.file.toLowerCase().includes(search.toLowerCase())
-    // (dateFilter === 'All Dates' || pdf.date.startsWith(dateFilter))
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const base = q ? items.filter((it) => String(it.file ?? '').toLowerCase().includes(q)) : items;
+    return [...base].sort((a, b) => Number(b.date ?? 0) - Number(a.date ?? 0));
+  }, [items, search]);
 
-  const handleDownload = async (file: string) => {
-    window.open(`/api/pdfs/${encodeURIComponent(file)}`, '_blank');
-  };
-
-  const handleDelete = async (file: string) => {
-    if (!window.confirm('Delete this PDF?')) return;
-    await apiDelete(`/pdfs/${encodeURIComponent(file)}`);
-    fetchPdfs();
-  };
-
-  const handleSend = async (file: string) => {
-    const to = window.prompt('Recipient email:');
-    if (!to) return;
-    await apiPost(`/pdfs/${encodeURIComponent(file)}/send`, { to });
-    alert('PDF sent!');
+  const getDownloadUrl = (filename: string) => {
+    return `${API_BASE_URL}/pdfs/${encodeURIComponent(filename)}`;
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="page-hero">
-        <div className="page-hero__topline" aria-hidden />
-        <div className="page-hero__layout">
-          <div className="min-w-0">
-            <div className="page-hero__title-row">
-              <div className="page-hero__icon" aria-hidden>
-                <FileText className="h-[18px] w-[18px]" />
-              </div>
-
-              <div className="min-w-0">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="page-hero__badge">PDFs</span>
-                </div>
-
-                <h1 className="page-hero__title">
-                  <span className="page-hero__title-stack">
-                    <span className="page-hero__title-glow" aria-hidden>
-                      PDF History
-                    </span>
-                    <span className="page-hero__title-text">PDF History</span>
-                  </span>
-                </h1>
-
-                <div className="page-hero__underline" aria-hidden />
-                <p className="page-hero__subtitle">Browse, download, and send generated PDFs</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="page-hero__actions">
-            <Button onClick={fetchPdfs} variant="secondary" disabled={loading}>
-              {loading ? 'Refreshing…' : 'Refresh'}
-            </Button>
-          </div>
-        </div>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <h1 className="text-2xl font-bold">Historique des PDFs</h1>
+        <Button onClick={fetchPdfs} variant="secondary" disabled={loading} className="gap-2">
+          <RefreshCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+          {loading ? 'Chargement…' : 'Rafraîchir'}
+        </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="mb-4">
         <Input
-          placeholder="Search PDFs..."
+          placeholder="Rechercher un PDF…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-64"
+          className="max-w-md"
         />
-        <select
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground"
-        >
-          <option>All Dates</option>
-          {/* Add more date options dynamically if needed */}
-        </select>
       </div>
-      <div className="premium-surface p-4">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-2">PDF FILE</th>
-              <th className="text-left py-2">GENERATED BY</th>
-              <th className="text-left py-2">DATE</th>
-              <th className="text-left py-2">ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((pdf, idx) => (
-              <tr key={pdf.file} className="border-b hover:bg-gray-50">
-                <td className="py-2">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-blue-100 text-blue-700 rounded px-2 py-1 font-mono text-xs">PDF</span>
-                    <span>{pdf.file}</span>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tous les documents générés</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filtered.length > 0 ? (
+            <div className="space-y-4">
+              {filtered.map((pdf, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border"
+                >
+                  <div className="flex items-center gap-4">
+                    <FileText className="h-6 w-6 text-muted-foreground" />
+                    <div>
+                      <p className="font-semibold">{pdf.file}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {pdf.size ? `${pdf.size} • ` : ''}Généré le {formatEpochSeconds(pdf.date)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">{pdf.size} · PDF</div>
-                </td>
-                <td className="py-2">{pdf.generatedBy}</td>
-                <td className="py-2">{pdf.date ? formatDate(new Date(Number(pdf.date) * 1000).toISOString()) : ''}</td>
-                <td className="py-2 flex gap-2">
-                  <Button size="icon" variant="outline" title="Download" onClick={() => handleDownload(pdf.file)}>
-                    <FaDownload />
-                  </Button>
-                  <Button size="icon" variant="outline" title="Send" onClick={() => handleSend(pdf.file)}>
-                    <FaEnvelope />
-                  </Button>
-                  <Button size="icon" variant="destructive" title="Delete" onClick={() => handleDelete(pdf.file)}>
-                    <FaTrash />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={4} className="text-center text-muted-foreground py-8">No PDFs found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                  <a
+                    href={getDownloadUrl(pdf.file)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-md hover:bg-muted"
+                    title="Télécharger le PDF"
+                  >
+                    <Download className="h-5 w-5" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-semibold">Aucun PDF trouvé</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Les PDFs disponibles sur le serveur apparaîtront ici.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

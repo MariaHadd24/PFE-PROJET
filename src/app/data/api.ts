@@ -9,13 +9,12 @@ import type {
   KPIData,
   Licence,
   MaintenanceTicket,
+  Order,
   PrinterTonerEntry,
   PrinterTonerExit,
   PrinterTonerIncident,
   PrinterTonerMinQty,
   Monitor,
-  PurchaseOrder,
-  PurchaseRequest,
   Site,
   StockMovement,
   Supplier,
@@ -91,21 +90,10 @@ export const patchMaintenanceTicket = (id: string, payload: Patch<MaintenanceTic
 export const deleteMaintenanceTicket = (id: string) =>
   apiDelete<{ ok: boolean }>(`/maintenance-tickets/${encodeURIComponent(id)}`);
 
-export const listPurchaseRequests = () => apiGet<PurchaseRequest[]>('/purchase-requests?limit=1000');
-export const createPurchaseRequest = (payload: Create<PurchaseRequest>) =>
-  apiPost<PurchaseRequest>('/purchase-requests', payload);
-export const patchPurchaseRequest = (id: string, payload: Patch<PurchaseRequest>) =>
-  apiPatch<PurchaseRequest>(`/purchase-requests/${encodeURIComponent(id)}`, payload);
-export const deletePurchaseRequest = (id: string) =>
-  apiDelete<{ ok: boolean }>(`/purchase-requests/${encodeURIComponent(id)}`);
-
-export const listPurchaseOrders = () => apiGet<PurchaseOrder[]>('/purchase-orders?limit=1000');
-export const createPurchaseOrder = (payload: Create<PurchaseOrder>) =>
-  apiPost<PurchaseOrder>('/purchase-orders', payload);
-export const patchPurchaseOrder = (id: string, payload: Patch<PurchaseOrder>) =>
-  apiPatch<PurchaseOrder>(`/purchase-orders/${encodeURIComponent(id)}`, payload);
-export const deletePurchaseOrder = (id: string) =>
-  apiDelete<{ ok: boolean }>(`/purchase-orders/${encodeURIComponent(id)}`);
+export const listOrders = () => apiGet<Order[]>('/orders?limit=10000');
+export const createOrder = (payload: Create<Order>) => apiPost<Order>('/orders', payload);
+export const patchOrder = (id: string, payload: Patch<Order>) => apiPatch<Order>(`/orders/${encodeURIComponent(id)}`, payload);
+export const deleteOrder = (id: string) => apiDelete<{ ok: boolean }>(`/orders/${encodeURIComponent(id)}`);
 
 export const listAuditLogs = () => apiGet<AuditLog[]>('/audit-logs?limit=1000');
 export const createAuditLog = (payload: Create<AuditLog>) => apiPost<AuditLog>('/audit-logs', payload);

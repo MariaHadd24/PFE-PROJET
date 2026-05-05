@@ -3,10 +3,9 @@
 export type AssetStatus = 'Available' | 'Assigned' | 'InRepair' | 'Retired';
 export type MovementType = 'Entry' | 'Exit' | 'Transfer';
 export type AssignmentStatus = 'Pending' | 'Active' | 'Returned';
-export type PRStatus = 'Draft' | 'Pending' | 'Approved' | 'Rejected';
-export type POStatus = 'Draft' | 'Approved' | 'Ordered' | 'Received' | 'Closed';
 export type TicketStatus = 'Open' | 'InProgress' | 'Done' | 'Closed';
 export type UserRole = 'Admin' | 'Technician' | 'Manager' | 'Reader';
+export type OrderStatus = 'Draft' | 'Approved' | 'Ordered' | 'Received' | 'Closed';
 
 export type AuditLogResult = 'Success' | 'Failure' | 'Warning';
 
@@ -156,43 +155,30 @@ export interface Assignment {
   monitor_bci?: string;
 }
 
-export interface PurchaseRequest {
-  id: string;
-  requester: string;
-  department: string;
-  bce?: string;
-  bci?: string;
-  budget: number;
-  justification: string;
-  status: PRStatus;
-  createdDate: string;
-  lines: PRLine[];
+export interface OrderFile {
+  name: string;
+  size: number;
+  uploadedAt: string;
+  key: string;
+  // Legacy migration only.
+  dataUrl?: string;
 }
 
-export interface PRLine {
+export interface Order {
   id: string;
-  product: string;
-  quantity: number;
-  estimatedPrice: number;
-}
-
-export interface PurchaseOrder {
-  id: string;
-  prId: string;
-  bce?: string;
-  bci?: string;
+  reference: string;
   supplier: string;
-  status: POStatus;
   total: number;
-  createdDate: string;
-  lines: POLine[];
-}
-
-export interface POLine {
-  id: string;
-  product: string;
+  date: string;
+  category: string;
+  subCategory: string;
+  description: string;
   quantity: number;
-  price: number;
+  department: string;
+  status: OrderStatus;
+  bcFile?: OrderFile | null;
+  blFile?: OrderFile | null;
+  createdAt: string;
 }
 
 export interface MaintenanceTicket {

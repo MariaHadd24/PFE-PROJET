@@ -79,7 +79,7 @@ function KPICard({
 export function VendorPortalPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<VendorStatus | ''>('');
-  const { vendors, purchaseOrders, addVendor } = useData();
+  const { vendors, addVendor } = useData();
   const [isOnboardOpen, setIsOnboardOpen] = useState(false);
 
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -105,17 +105,6 @@ export function VendorPortalPage() {
         .includes(q);
     });
   }, [vendors, searchTerm, filterStatus]);
-
-  const purchasesBySupplier = useMemo(() => {
-    const norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
-    const map = new Map<string, number>();
-    for (const po of purchaseOrders) {
-      const key = norm((po as any)?.supplier);
-      if (!key) continue;
-      map.set(key, (map.get(key) ?? 0) + 1);
-    }
-    return map;
-  }, [purchaseOrders]);
 
   const activeVendorsCount = useMemo(() => {
     return vendors.filter(v => v.status !== 'UNDER REVIEW').length;
@@ -285,7 +274,6 @@ export function VendorPortalPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendor / Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Contact Info</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Contract Data</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Purchases</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rating</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
@@ -311,13 +299,6 @@ export function VendorPortalPage() {
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-foreground">{formatCompactMAD(v.totalSpend)}</div>
                     <div className="text-xs text-muted-foreground">{v.activeContracts} Active Contract(s)</div>
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-black tabular-nums text-foreground">
-                      {purchasesBySupplier.get(String(v.name ?? '').trim().toLowerCase()) ?? 0}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Purchase order(s)</div>
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap">

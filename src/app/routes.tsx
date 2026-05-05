@@ -98,6 +98,14 @@ export const router = createBrowserRouter([
         )
       },
       {
+        path: 'pdf-history',
+        element: (
+          <RequireRole roles={['Admin', 'Manager']}>
+            <PdfHistoryPage />
+          </RequireRole>
+        )
+      },
+      {
         path: 'maintenance',
         Component: MaintenancePage
       },
@@ -132,10 +140,6 @@ export const router = createBrowserRouter([
       {
         path: 'licences',
         Component: LicencesPage
-      },
-      {
-        path: 'pdf-history',
-        Component: PdfHistoryPage
       }
     ]
   }

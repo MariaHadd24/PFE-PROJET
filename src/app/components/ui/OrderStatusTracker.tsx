@@ -12,14 +12,14 @@ import {
   Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { POStatus } from '../../types';
+import type { OrderStatus } from '../../types';
 
 // ─── Config des statuts ───────────────────────────────────────────────────────
 
-export const PO_STATUS_FLOW: POStatus[] = ['Draft', 'Approved', 'Ordered', 'Received', 'Closed'];
+export const PO_STATUS_FLOW: OrderStatus[] = ['Draft', 'Approved', 'Ordered', 'Received', 'Closed'];
 
 const STATUS_META: Record<
-  POStatus,
+  OrderStatus,
   {
     label: string;
     labelFr: string;
@@ -72,7 +72,7 @@ const STATUS_META: Record<
 };
 
 // Transitions autorisées
-const ALLOWED_NEXT: Record<POStatus, POStatus[]> = {
+const ALLOWED_NEXT: Record<OrderStatus, OrderStatus[]> = {
   Draft:    ['Approved'],
   Approved: ['Ordered', 'Draft'],
   Ordered:  ['Received'],
@@ -84,9 +84,9 @@ const ALLOWED_NEXT: Record<POStatus, POStatus[]> = {
 
 interface OrderStatusTrackerProps {
   poId: string;
-  currentStatus: POStatus;
+  currentStatus: OrderStatus;
   canManage: boolean;
-  onStatusChange: (poId: string, newStatus: POStatus) => Promise<void>;
+  onStatusChange: (poId: string, newStatus: OrderStatus) => Promise<void>;
 }
 
 // ─── Composant ────────────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ export function OrderStatusTracker({
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const handleSelect = async (next: POStatus) => {
+  const handleSelect = async (next: OrderStatus) => {
     setOpen(false);
     setLoading(true);
     try {

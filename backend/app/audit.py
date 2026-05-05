@@ -296,44 +296,6 @@ def record(
                                 explanation=explanation,
                             )
 
-                    if str(entity) == "PurchaseRequest" and isinstance(created_obj, dict):
-                        pr_id = safe_str(created_obj.get("id") or entity_id)
-                        dept = safe_str(created_obj.get("department"))
-                        budget = created_obj.get("budget")
-                        requester_email = safe_str(created_obj.get("requesterEmail") or created_obj.get("email") or "")
-                        parts = [p for p in [pr_id, dept] if p]
-                        msg = " - ".join(parts) if parts else "Purchase Request created"
-                        if budget is not None and str(budget) != "":
-                            msg = f"{msg} (Budget: {budget})"
-                        send_notification(
-                            category="request",
-                            title="New Purchase Request",
-                            message=msg,
-                            action_link="/orders",
-                            action_label="View orders",
-                            recipient_email=requester_email,
-                            explanation="Vous venez de recevoir une nouvelle demande d'achat sur la plateforme. Cliquez sur le lien pour voir les détails.",
-                        )
-
-                    if str(entity) == "PurchaseOrder" and isinstance(created_obj, dict):
-                        po_id = safe_str(created_obj.get("id") or entity_id)
-                        supplier = safe_str(created_obj.get("supplier"))
-                        total = created_obj.get("total")
-                        requester_email = safe_str(created_obj.get("requesterEmail") or created_obj.get("email") or "")
-                        parts = [p for p in [po_id, supplier] if p]
-                        msg = " - ".join(parts) if parts else "Purchase Order created"
-                        if total is not None and str(total) != "":
-                            msg = f"{msg} (Total: {total})"
-                        send_notification(
-                            category="order",
-                            title="New Purchase Order",
-                            message=msg,
-                            action_link="/orders",
-                            action_label="View orders",
-                            recipient_email=requester_email,
-                            explanation="Vous venez de recevoir une nouvelle commande sur la plateforme. Cliquez sur le lien pour voir les détails.",
-                        )
-
                     if str(entity) == "Assignment" and isinstance(created_obj, dict):
                         status = safe_str(created_obj.get("status") or "Pending")
                         if status in {"Pending", ""}:

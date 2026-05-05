@@ -1,7 +1,7 @@
 // src/app/pages/OrdersPage.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion, type Variants } from 'motion/react';
 import {
   ShoppingCart, Plus, FileText, Upload, Trash2, ChevronDown,
   Check, ClipboardList, Package, ShieldCheck, Lock, X, Eye,
@@ -11,41 +11,15 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { canPerformAction } from '../lib/rbac';
 import { formatMAD } from '../lib/money';
-import { deleteOrderFile, getOrderFile, putOrderFile, putOrderFileFromBlob } from '../lib/orderFilesDb';
+import { deleteOrderFile, getOrderFile, putOrderFile } from '../lib/orderFilesDb';
+import { createOrder, deleteOrder, listOrders, patchOrder } from '../data/api';
+import type { Order, OrderFile, OrderStatus } from '../types';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter,
 } from '../components/ui/dialog';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type OrderStatus = 'Draft' | 'Approved' | 'Ordered' | 'Received' | 'Closed';
-
-export interface OrderFile {
-  name: string;
-  size: number;
-  uploadedAt: string;
-  key: string;
-  // Legacy (previous implementation): kept for migration only.
-  dataUrl?: string;
-}
-
-export interface Order {
-  id: string;
-  reference: string;
-  supplier: string;
-  total: number;
-  date: string;
-  category: string;
-  subCategory: string;
-  description: string;
-  quantity: number;
-  department: string;
-  status: OrderStatus;
-  bcFile?: OrderFile;
-  blFile?: OrderFile;
-  createdAt: string;
-}
+// Types are imported from ../types
 
 // ─── Categories & subcategories (mirrors dashboard) ─────────────────────────
 
@@ -80,24 +54,11 @@ const ALLOWED_NEXT: Record<OrderStatus, OrderStatus[]> = {
   Closed:   [],
 };
 
-// ─── localStorage ─────────────────────────────────────────────────────────────
-
-const LS_KEY = 'leoni-orders-v2';
-function loadOrders(): Order[] {
-  try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : []; } catch { return []; }
-}
-function saveOrders(orders: Order[]) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(orders));
-    return true;
-  } catch (err) {
-    // Most common failure here is quota exceeded when storing base64.
-    console.warn('[Orders] Failed to persist orders to localStorage:', err);
-    return false;
-  }
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function makeOrderFileKey(orderId: string, type: 'bcFile' | 'blFile') {
+  return `${orderId}:${type}`;
+}
 
 function dataUrlToBlob(dataUrl: string): { blob: Blob; mime: string } {
   const [meta, b64] = dataUrl.split(',');
@@ -107,23 +68,19 @@ function dataUrlToBlob(dataUrl: string): { blob: Blob; mime: string } {
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return { blob: new Blob([bytes], { type: mime }), mime };
 }
-
-function makeOrderFileKey(orderId: string, type: 'bcFile' | 'blFile') {
-  return `${orderId}:${type}`;
-}
 function fmtBytes(n: number) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const pageContainerVariants = {
+const pageContainerVariants: Variants = {
   hidden: { opacity: 0, y: 8 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.18, ease: 'easeOut', when: 'beforeChildren', staggerChildren: 0.05 } },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1], when: 'beforeChildren', staggerChildren: 0.05 } },
 };
-const pageItemVariants = {
+const pageItemVariants: Variants = {
   hidden: { opacity: 0, y: 8 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.18, ease: 'easeOut' } },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } },
 };
 
 // ─── StatusBadge ─────────────────────────────────────────────────────────────
@@ -287,7 +244,7 @@ function StatusBadge({ orderId, status, canManage, onChange }: {
 // ─── FileCell — fix page blanche via blob URL ─────────────────────────────────
 
 function FileCell({ file, label, canManage, onUpload, onRemove }: {
-  file?: OrderFile; label: 'BC' | 'BL'; canManage: boolean;
+  file?: OrderFile | null; label: 'BC' | 'BL'; canManage: boolean;
   onUpload: (f: File) => void; onRemove: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -610,85 +567,45 @@ export function OrdersPage() {
   const canManageOrders = canPerformAction(role, 'manage_orders');
   const { suppliers, departments } = useData();
 
-  const [orders, setOrders] = useState<Order[]>(() => loadOrders());
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const quotaWarnedRef = useRef(false);
-  const skipInitialSaveRef = useRef(true);
 
-  useEffect(() => {
-    if (skipInitialSaveRef.current) {
-      skipInitialSaveRef.current = false;
-      return;
-    }
-    const ok = saveOrders(orders);
-    if (!ok && !quotaWarnedRef.current) {
-      quotaWarnedRef.current = true;
-      toast.error('Save failed', {
-        description: 'Storage quota exceeded. Large files are now stored in IndexedDB; please retry your last action.',
-      });
-    }
-  }, [orders]);
-
-  // Migrate legacy base64 files (dataUrl) from localStorage to IndexedDB.
   useEffect(() => {
     let cancelled = false;
-    const run = async () => {
-      const migrations: Array<Promise<void>> = [];
-      const nextOrders: Order[] = orders.map(o => ({ ...o }));
-      let changed = false;
-
-      for (let i = 0; i < nextOrders.length; i++) {
-        const order = nextOrders[i];
-
-        for (const type of ['bcFile', 'blFile'] as const) {
-          const current = order[type];
-          if (!current?.dataUrl) continue;
-
-          const key = current.key || makeOrderFileKey(order.id, type);
-          const name = current.name || (type === 'bcFile' ? 'BC' : 'BL');
-          const uploadedAt = current.uploadedAt || new Date().toISOString();
-
-          migrations.push(
-            (async () => {
-              try {
-                const { blob } = dataUrlToBlob(current.dataUrl as string);
-                await putOrderFileFromBlob({ key, blob, name, uploadedAt });
-              } catch {
-                // If migration fails, keep legacy dataUrl; user can still open it.
-              }
-            })()
-          );
-
-          // Strip base64 payload from localStorage representation
-          (order as any)[type] = {
-            name: current.name,
-            size: current.size,
-            uploadedAt: current.uploadedAt,
-            key,
-          } as OrderFile;
-          changed = true;
-        }
+    (async () => {
+      try {
+        const data = await listOrders();
+        if (!cancelled) setOrders(data);
+      } catch (err: any) {
+        toast.error('Failed to load orders', { description: String(err?.message ?? err) });
       }
-
-      if (migrations.length) await Promise.allSettled(migrations);
-      if (!cancelled && changed) setOrders(nextOrders);
-    };
-
-    // Run only once on mount.
-    run();
+    })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAdd = (order: Order) => {
-    setOrders(prev => [order, ...prev]);
-    toast.success('Order created', { description: `${order.reference} — ${order.supplier}` });
+  const handleAdd = async (order: Order) => {
+    try {
+      const created = await createOrder(order);
+      setOrders(prev => [created, ...prev]);
+      toast.success('Order created', { description: `${created.reference} — ${created.supplier}` });
+    } catch (err: any) {
+      toast.error('Create failed', { description: String(err?.message ?? err) });
+    }
   };
 
-  const handleStatusChange = (id: string, next: OrderStatus) => {
+  const handleStatusChange = async (id: string, next: OrderStatus) => {
+    const current = orders.find(o => o.id === id);
+    if (!current) return;
+
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: next } : o));
-    const order = orders.find(o => o.id === id);
-    if (order) toast.success('Status updated', { description: `${order.reference} → ${STATUS_META[next].label}` });
+    try {
+      const updated = await patchOrder(id, { status: next });
+      setOrders(prev => prev.map(o => o.id === id ? updated : o));
+      toast.success('Status updated', { description: `${updated.reference} → ${STATUS_META[next].label}` });
+    } catch (err: any) {
+      setOrders(prev => prev.map(o => o.id === id ? current : o));
+      toast.error('Update failed', { description: String(err?.message ?? err) });
+    }
   };
 
   const handleUploadFile = async (orderId: string, type: 'bcFile' | 'blFile', file: File) => {
@@ -696,25 +613,38 @@ export function OrdersPage() {
       const key = makeOrderFileKey(orderId, type);
       const stored = await putOrderFile({ key, file, uploadedAt: new Date().toISOString() });
       const orderFile: OrderFile = { name: stored.name, size: stored.size, uploadedAt: stored.uploadedAt, key: stored.key };
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [type]: orderFile } : o));
+      const updated = await patchOrder(orderId, { [type]: orderFile } as any);
+      setOrders(prev => prev.map(o => o.id === orderId ? updated : o));
       toast.success(`${type === 'bcFile' ? 'BC' : 'BL'} attached`, { description: `${file.name} (${fmtBytes(file.size)})` });
     } catch (err: any) {
       toast.error('Upload error', { description: String(err?.message ?? 'Invalid file') });
     }
   };
 
-  const handleRemoveFile = (orderId: string, type: 'bcFile' | 'blFile') => {
+  const handleRemoveFile = async (orderId: string, type: 'bcFile' | 'blFile') => {
     const key = makeOrderFileKey(orderId, type);
     deleteOrderFile(key).catch(() => {});
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [type]: undefined } : o));
+    try {
+      const updated = await patchOrder(orderId, { [type]: null } as any);
+      setOrders(prev => prev.map(o => o.id === orderId ? updated : o));
+    } catch {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [type]: undefined } : o));
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const order = orders.find(o => o.id === id);
     if (order?.bcFile?.key) deleteOrderFile(order.bcFile.key).catch(() => {});
     if (order?.blFile?.key) deleteOrderFile(order.blFile.key).catch(() => {});
     setOrders(prev => prev.filter(o => o.id !== id));
-    if (order) toast.info('Order deleted', { description: order.reference });
+    try {
+      await deleteOrder(id);
+      if (order) toast.info('Order deleted', { description: order.reference });
+    } catch (err: any) {
+      // Re-add on failure
+      if (order) setOrders(prev => [order, ...prev]);
+      toast.error('Delete failed', { description: String(err?.message ?? err) });
+    }
   };
 
   const stats = {

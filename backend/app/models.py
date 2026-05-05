@@ -9,13 +9,13 @@ AssetStatus = Literal["Available", "Assigned", "InRepair", "Retired"]
 MovementType = Literal["Entry", "Exit", "Transfer"]
 AssignmentStatus = Literal["Pending", "Active", "Returned"]
 DeviceCategory = Literal["Workstation", "Notebook", "Printer"]
-PRStatus = Literal["Draft", "Pending", "Approved", "Rejected"]
-POStatus = Literal["Draft", "Approved", "Ordered", "Received", "Closed"]
+
 TicketStatus = Literal["Open", "InProgress", "Done", "Closed"]
 UserRole = Literal["Admin", "Technician", "Manager", "Reader"]
 AuditLogResult = Literal["Success", "Failure", "Warning"]
 VendorStatus = Literal["PREFERRED", "APPROVED", "UNDER REVIEW"]
 IncidentStatus = Literal["NON_INTERVENUE", "INTERVENUE"]
+OrderStatus = Literal["Draft", "Approved", "Ordered", "Received", "Closed"]
 
 
 class Department(BaseModel):
@@ -481,105 +481,63 @@ class AssignmentUpdate(BaseModel):
     monitor_bci: Optional[str] = None
 
 
-class PRLine(BaseModel):
+class OrderFile(BaseModel):
+    name: str
+    size: int
+    uploadedAt: str
+    key: str
+    # Legacy support (frontend migration) — keep optional.
+    dataUrl: Optional[str] = None
+
+
+class Order(BaseModel):
     id: str
-    product: str
-    quantity: int
-    estimatedPrice: float
-
-
-class PRLineCreate(BaseModel):
-    id: Optional[str] = None
-    product: str
-    quantity: int
-    estimatedPrice: float
-
-
-class PurchaseRequest(BaseModel):
-    id: str
-    requester: str
-    department: str
-    bce: Optional[str] = None
-    bci: Optional[str] = None
-    budget: float
-    justification: str
-    status: PRStatus
-    createdDate: str
-    lines: List[PRLine] = Field(default_factory=list)
-
-
-class PurchaseRequestCreate(BaseModel):
-    id: Optional[str] = None
-    requester: str
-    department: str
-    bce: Optional[str] = None
-    bci: Optional[str] = None
-    budget: float
-    justification: str
-    status: PRStatus = "Draft"
-    createdDate: str
-    lines: List[PRLineCreate] = Field(default_factory=list)
-
-
-class PurchaseRequestUpdate(BaseModel):
-    requester: Optional[str] = None
-    department: Optional[str] = None
-    bce: Optional[str] = None
-    bci: Optional[str] = None
-    budget: Optional[float] = None
-    justification: Optional[str] = None
-    status: Optional[PRStatus] = None
-    createdDate: Optional[str] = None
-    lines: Optional[List[PRLineCreate]] = None
-
-
-class POLine(BaseModel):
-    id: str
-    product: str
-    quantity: int
-    price: float
-
-
-class POLineCreate(BaseModel):
-    id: Optional[str] = None
-    product: str
-    quantity: int
-    price: float
-
-
-class PurchaseOrder(BaseModel):
-    id: str
-    prId: str
-    bce: Optional[str] = None
-    bci: Optional[str] = None
+    reference: str
     supplier: str
-    status: POStatus
     total: float
-    createdDate: str
-    lines: List[POLine] = Field(default_factory=list)
+    date: str
+    category: str
+    subCategory: str
+    description: str
+    quantity: int
+    department: str
+    status: OrderStatus
+    bcFile: Optional[OrderFile] = None
+    blFile: Optional[OrderFile] = None
+    createdAt: str
 
 
-class PurchaseOrderCreate(BaseModel):
+class OrderCreate(BaseModel):
     id: Optional[str] = None
-    prId: str
-    bce: Optional[str] = None
-    bci: Optional[str] = None
+    reference: str
     supplier: str
-    status: POStatus = "Draft"
-    total: float
-    createdDate: str
-    lines: List[POLineCreate] = Field(default_factory=list)
+    total: float = 0
+    date: str
+    category: str
+    subCategory: str = ""
+    description: str = ""
+    quantity: int = 1
+    department: str
+    status: OrderStatus = "Draft"
+    bcFile: Optional[OrderFile] = None
+    blFile: Optional[OrderFile] = None
+    createdAt: Optional[str] = None
 
 
-class PurchaseOrderUpdate(BaseModel):
-    prId: Optional[str] = None
-    bce: Optional[str] = None
-    bci: Optional[str] = None
+class OrderUpdate(BaseModel):
+    reference: Optional[str] = None
     supplier: Optional[str] = None
-    status: Optional[POStatus] = None
     total: Optional[float] = None
-    createdDate: Optional[str] = None
-    lines: Optional[List[POLineCreate]] = None
+    date: Optional[str] = None
+    category: Optional[str] = None
+    subCategory: Optional[str] = None
+    description: Optional[str] = None
+    quantity: Optional[int] = None
+    department: Optional[str] = None
+    status: Optional[OrderStatus] = None
+    bcFile: Optional[OrderFile] = None
+    blFile: Optional[OrderFile] = None
+    createdAt: Optional[str] = None
 
 
 class MaintenanceTicket(BaseModel):

@@ -637,8 +637,6 @@ def main() -> int:
             "assets",
             "stock_movements",
             "assignments",
-            "purchase_requests",
-            "purchase_orders",
             "maintenance_tickets",
             "audit_logs",
             "vendors",

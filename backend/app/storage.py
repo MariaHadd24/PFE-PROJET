@@ -60,8 +60,7 @@ class Database:
     assets: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="asset"))
     movements: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="mov"))
     assignments: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="asn"))
-    purchase_requests: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="pr"))
-    purchase_orders: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="po"))
+    orders: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="ord"))
     maintenance_tickets: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="mt"))
     audit_logs: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="log"))
     vendors: InMemoryRepo = field(default_factory=lambda: InMemoryRepo(prefix="ven"))
@@ -76,8 +75,6 @@ def _build_sqlserver_db() -> Database:
     from app import models
     from app.sqlrepos import (
         AssignmentRepo,
-        PurchaseOrderRepo,
-        PurchaseRequestRepo,
         SQLServerRepo,
     )
 
@@ -112,17 +109,19 @@ def _build_sqlserver_db() -> Database:
                 "approvedAt",
             ),
         ),
-        purchase_requests=PurchaseRequestRepo(
-            table="purchase_requests",
-            model=models.PurchaseRequest,
-            date_fields=("createdDate",),
-            exclude_fields=("lines",),
-        ),
-        purchase_orders=PurchaseOrderRepo(
-            table="purchase_orders",
-            model=models.PurchaseOrder,
-            date_fields=("createdDate",),
-            exclude_fields=("lines",),
+        orders=SQLServerRepo(
+            table="orders",
+            model=models.Order,
+            date_fields=(
+                "date",
+            ),
+            datetime_fields=(
+                "createdAt",
+            ),
+            json_fields=(
+                "bcFile",
+                "blFile",
+            ),
         ),
         maintenance_tickets=SQLServerRepo(
             table="maintenance_tickets",

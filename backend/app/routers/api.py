@@ -128,8 +128,6 @@ def _get_undo_target(entity: str):
         "Asset": (DB.assets, models.Asset),
         "StockMovement": (DB.movements, models.StockMovement),
         "Assignment": (DB.assignments, models.Assignment),
-        "PurchaseRequest": (DB.purchase_requests, models.PurchaseRequest),
-        "PurchaseOrder": (DB.purchase_orders, models.PurchaseOrder),
         "MaintenanceTicket": (DB.maintenance_tickets, models.MaintenanceTicket),
         "Vendor": (DB.vendors, models.Vendor),
     }
@@ -1582,22 +1580,23 @@ def delete_assignment(item_id: str, request: Request = None):
 
     return {"ok": True}
 
-register_crud_routes(
-    router=router,
-    repo=DB.purchase_requests,
-    model=models.PurchaseRequest,
-    create_model=models.PurchaseRequestCreate,
-    update_model=models.PurchaseRequestUpdate,
-    prefix="purchase-requests",
-)
+def _orders_create_defaults(data: dict) -> dict:
+    # Ensure required fields exist on the stored model.
+    if not (data.get("status") or "").strip():
+        data["status"] = "Draft"
+    if not (data.get("createdAt") or "").strip():
+        data["createdAt"] = datetime.utcnow().isoformat(timespec="seconds")
+    return data
+
 
 register_crud_routes(
     router=router,
-    repo=DB.purchase_orders,
-    model=models.PurchaseOrder,
-    create_model=models.PurchaseOrderCreate,
-    update_model=models.PurchaseOrderUpdate,
-    prefix="purchase-orders",
+    repo=DB.orders,
+    model=models.Order,
+    create_model=models.OrderCreate,
+    update_model=models.OrderUpdate,
+    prefix="orders",
+    create_fn=_orders_create_defaults,
 )
 
 register_crud_routes(

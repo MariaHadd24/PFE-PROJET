@@ -8,8 +8,6 @@ import type {
   Department,
   Licence,
   MaintenanceTicket,
-  PurchaseOrder,
-  PurchaseRequest,
   Site,
   StockMovement,
   Supplier,
@@ -26,8 +24,6 @@ import {
   createLicence,
   createMaintenanceTicket,
   createMovement,
-  createPurchaseOrder,
-  createPurchaseRequest,
   createSite,
   createSupplier,
   createUser,
@@ -47,8 +43,6 @@ import {
   listLicences,
   listMaintenanceTickets,
   listMovements,
-  listPurchaseOrders,
-  listPurchaseRequests,
   listSites,
   listSuppliers,
   listUsers,
@@ -108,8 +102,6 @@ export type DataContextValue = {
 
   stockMovements: StockMovement[];
   assignments: Assignment[];
-  purchaseRequests: PurchaseRequest[];
-  purchaseOrders: PurchaseOrder[];
   maintenanceTickets: MaintenanceTicket[];
   auditLogs: AuditLog[];
   vendors: Vendor[];
@@ -139,8 +131,6 @@ export type DataContextValue = {
   addMovement: (payload: Omit<StockMovement, 'id'> & { id?: string }) => Promise<StockMovement>;
   addAssignment: (payload: Omit<Assignment, 'id'> & { id?: string }) => Promise<Assignment>;
   clearAssignments: () => Promise<{ deleted: number }>;
-  addPurchaseRequest: (payload: Omit<PurchaseRequest, 'id'> & { id?: string }) => Promise<PurchaseRequest>;
-  addPurchaseOrder: (payload: Omit<PurchaseOrder, 'id'> & { id?: string }) => Promise<PurchaseOrder>;
   addMaintenanceTicket: (payload: Omit<MaintenanceTicket, 'id'> & { id?: string }) => Promise<MaintenanceTicket>;
   addVendor: (payload: Omit<Vendor, 'id'> & { id?: string }) => Promise<Vendor>;
   addAuditLog: (payload: Omit<AuditLog, 'id'> & { id?: string }) => Promise<AuditLog>;
@@ -172,8 +162,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -194,8 +182,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         departmentsData,
         movementsData,
         assignmentsData,
-        purchaseRequestsData,
-        purchaseOrdersData,
         maintenanceTicketsData,
         auditLogsData,
         vendorsData,
@@ -209,8 +195,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         listDepartments(),
         listMovements(),
         listAssignments(),
-        listPurchaseRequests(),
-        listPurchaseOrders(),
         listMaintenanceTickets(),
         listAuditLogs(),
         listVendors(),
@@ -236,8 +220,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         Array.isArray(movementsData) ? movementsData.filter((m) => m.assetId && m.date && m.type) : [],
       );
       setAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
-      setPurchaseRequests(Array.isArray(purchaseRequestsData) ? purchaseRequestsData : []);
-      setPurchaseOrders(Array.isArray(purchaseOrdersData) ? purchaseOrdersData : []);
       setMaintenanceTickets(Array.isArray(maintenanceTicketsData) ? maintenanceTicketsData : []);
       setAuditLogs(Array.isArray(auditLogsData) ? auditLogsData : []);
       setVendors(Array.isArray(vendorsData) ? vendorsData.map(normalizeVendorSeed) : []);
@@ -419,16 +401,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         );
         return;
       }
-      if (s === 'PurchaseOrder') {
-        const apiPurchaseOrders = await listPurchaseOrders();
-        setPurchaseOrders(Array.isArray(apiPurchaseOrders) ? apiPurchaseOrders : []);
-        return;
-      }
-      if (s === 'PurchaseRequest') {
-        const apiPurchaseRequests = await listPurchaseRequests();
-        setPurchaseRequests(Array.isArray(apiPurchaseRequests) ? apiPurchaseRequests : []);
-        return;
-      }
       if (s === 'Site') {
         const apiSites = await listSites();
         setSites(Array.isArray(apiSites) ? apiSites : []);
@@ -472,8 +444,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       departments,
       stockMovements,
       assignments,
-      purchaseRequests,
-      purchaseOrders,
       maintenanceTickets,
       auditLogs,
       vendors,
@@ -581,16 +551,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         await refreshByScope('Assignment');
         return result;
       },
-      addPurchaseRequest: async (payload) => {
-        const result = await createPurchaseRequest(payload);
-        await refreshByScope('PurchaseRequest');
-        return result;
-      },
-      addPurchaseOrder: async (payload) => {
-        const result = await createPurchaseOrder(payload);
-        await refreshByScope('PurchaseOrder');
-        return result;
-      },
       addMaintenanceTicket: async (payload) => {
         const result = await createMaintenanceTicket(payload);
         await refreshByScope('MaintenanceTicket');
@@ -626,8 +586,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       departments,
       stockMovements,
       assignments,
-      purchaseRequests,
-      purchaseOrders,
       maintenanceTickets,
       auditLogs,
       vendors,

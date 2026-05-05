@@ -184,65 +184,32 @@ CREATE INDEX IX_assignments_assetId ON dbo.assignments(assetId);
 CREATE INDEX IX_assignments_status ON dbo.assignments(status);
 
 /* =========================
-   Procurement: PR / PO + lines
-   ========================= */
+  Orders (nouvelle page) — simple order tracking (status, BC, BL)
+  ========================= */
 
-CREATE TABLE dbo.purchase_requests (
-  id          NVARCHAR(64)   NOT NULL,
-  requester   NVARCHAR(200)  NOT NULL,
-  department  NVARCHAR(200)  NOT NULL,
-  bce         NVARCHAR(100)  NULL,
-  bci         NVARCHAR(100)  NULL,
-  budget      DECIMAL(18,2)  NOT NULL,
-  justification NVARCHAR(MAX) NOT NULL,
-  status      NVARCHAR(20)   NOT NULL,
-  createdDate DATE           NOT NULL,
-  CONSTRAINT PK_purchase_requests PRIMARY KEY (id),
-  CONSTRAINT CK_purchase_requests_status CHECK (status IN ('Draft','Pending','Approved','Rejected'))
+CREATE TABLE dbo.orders (
+  id           NVARCHAR(64)   NOT NULL,
+  reference    NVARCHAR(120)  NOT NULL,
+  supplier     NVARCHAR(200)  NOT NULL,
+  total        DECIMAL(18,2)  NOT NULL,
+  [date]       DATE           NOT NULL,
+  category     NVARCHAR(200)  NOT NULL,
+  subCategory  NVARCHAR(200)  NOT NULL,
+  description  NVARCHAR(MAX)  NOT NULL,
+  quantity     INT            NOT NULL,
+  department   NVARCHAR(200)  NOT NULL,
+  status       NVARCHAR(20)   NOT NULL,
+  bcFile       NVARCHAR(MAX)  NULL,
+  blFile       NVARCHAR(MAX)  NULL,
+  createdAt    DATETIME2(0)   NOT NULL,
+  CONSTRAINT PK_orders PRIMARY KEY (id),
+  CONSTRAINT CK_orders_status CHECK (status IN ('Draft','Approved','Ordered','Received','Closed')),
+  CONSTRAINT CK_orders_bcFile_json CHECK (bcFile IS NULL OR ISJSON(bcFile) = 1),
+  CONSTRAINT CK_orders_blFile_json CHECK (blFile IS NULL OR ISJSON(blFile) = 1)
 );
 
-CREATE INDEX IX_purchase_requests_status ON dbo.purchase_requests(status);
-
-CREATE TABLE dbo.pr_lines (
-  id               NVARCHAR(64)  NOT NULL,
-  purchaseRequestId NVARCHAR(64) NOT NULL,
-  product          NVARCHAR(200) NOT NULL,
-  quantity         INT           NOT NULL,
-  estimatedPrice   DECIMAL(18,2) NOT NULL,
-  CONSTRAINT PK_pr_lines PRIMARY KEY (id),
-  CONSTRAINT FK_pr_lines_pr FOREIGN KEY (purchaseRequestId) REFERENCES dbo.purchase_requests(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IX_pr_lines_purchaseRequestId ON dbo.pr_lines(purchaseRequestId);
-
-CREATE TABLE dbo.purchase_orders (
-  id          NVARCHAR(64)  NOT NULL,
-  prId        NVARCHAR(64)  NOT NULL,
-  bce         NVARCHAR(100) NULL,
-  bci         NVARCHAR(100) NULL,
-  supplier    NVARCHAR(200) NOT NULL,
-  status      NVARCHAR(20)  NOT NULL,
-  total       DECIMAL(18,2) NOT NULL,
-  createdDate DATE          NOT NULL,
-  CONSTRAINT PK_purchase_orders PRIMARY KEY (id),
-  CONSTRAINT FK_purchase_orders_pr FOREIGN KEY (prId) REFERENCES dbo.purchase_requests(id),
-  CONSTRAINT CK_purchase_orders_status CHECK (status IN ('Draft','Approved','Ordered','Received','Closed'))
-);
-
-CREATE INDEX IX_purchase_orders_prId ON dbo.purchase_orders(prId);
-CREATE INDEX IX_purchase_orders_status ON dbo.purchase_orders(status);
-
-CREATE TABLE dbo.po_lines (
-  id              NVARCHAR(64)  NOT NULL,
-  purchaseOrderId NVARCHAR(64)  NOT NULL,
-  product         NVARCHAR(200) NOT NULL,
-  quantity        INT           NOT NULL,
-  price           DECIMAL(18,2) NOT NULL,
-  CONSTRAINT PK_po_lines PRIMARY KEY (id),
-  CONSTRAINT FK_po_lines_po FOREIGN KEY (purchaseOrderId) REFERENCES dbo.purchase_orders(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IX_po_lines_purchaseOrderId ON dbo.po_lines(purchaseOrderId);
+CREATE INDEX IX_orders_status ON dbo.orders(status);
+CREATE INDEX IX_orders_date ON dbo.orders([date]);
 
 /* =========================
    Maintenance

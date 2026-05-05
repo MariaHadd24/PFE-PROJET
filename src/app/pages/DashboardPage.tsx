@@ -1625,7 +1625,7 @@ function StatCard({
 }
 
 export function DashboardPage() {
-  const { assets, maintenanceTickets, purchaseRequests, purchaseOrders, users, sites, categories, suppliers, departments } = useData();
+  const { assets, maintenanceTickets, users, sites, categories, suppliers, departments } = useData();
   const cards = useMemo(() => buildCards(assets), [assets]);
 
   const shouldReduceMotion = useReducedMotion();
@@ -1676,31 +1676,12 @@ export function DashboardPage() {
       return closed ? acc : acc + 1;
     }, 0);
 
-    const requestsTotal = purchaseRequests.length;
-    const requestsPending = purchaseRequests.reduce((acc, r) => {
-      const s = normalizeStatus((r as any)?.status);
-      if (!s) return acc + 1;
-      const pending =
-        s.includes('pending') ||
-        s.includes('await') ||
-        s.includes('waiting') ||
-        s.includes('to approve') ||
-        s.includes('approval') ||
-        s.includes('new') ||
-        s.includes('open');
-      const final = s.includes('approved') || s.includes('rejected') || s.includes('ordered') || s.includes('completed') || s.includes('cancel');
-      if (final) return acc;
-      return pending ? acc + 1 : acc + 1;
-    }, 0);
-
     return {
       eolByAge,
       ticketsTotal,
       ticketsOpen,
-      requestsTotal,
-      requestsPending,
     };
-  }, [assets, maintenanceTickets, purchaseRequests]);
+  }, [assets, maintenanceTickets]);
 
   const adminCounts = useMemo(() => {
     const roleSet = new Set<string>();
@@ -1791,24 +1772,7 @@ export function DashboardPage() {
     return averageValue(maintenanceChartData as any);
   }, [maintenanceChartData]);
 
-  const purchaseChartData = useMemo(() => {
-    const byStatus = new Map<string, number>();
-    for (const p of purchaseRequests) {
-      const status = String(p.status ?? 'Unknown').trim();
-      byStatus.set(status, (byStatus.get(status) ?? 0) + 1);
-    }
-    return Array.from(byStatus.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-  }, [purchaseRequests]);
-
-  const purchaseChartTotal = useMemo(() => {
-    return purchaseChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
-  }, [purchaseChartData]);
-
-  const purchaseChartAvg = useMemo(() => {
-    return averageValue(purchaseChartData as any);
-  }, [purchaseChartData]);
+ 
 
   const departmentChartData = useMemo(() => {
     const counts = new Map<string, number>();
@@ -1929,26 +1893,6 @@ export function DashboardPage() {
     return averageValue(maintenanceCostByProviderChartData as any);
   }, [maintenanceCostByProviderChartData]);
 
-  const purchaseBudgetByDepartmentChartData = useMemo(() => {
-    const byDept = new Map<string, number>();
-    for (const r of purchaseRequests) {
-      const key = String((r as any)?.department ?? '').trim() || 'Unknown';
-      byDept.set(key, (byDept.get(key) ?? 0) + (Number((r as any)?.budget) || 0));
-    }
-    return Array.from(byDept.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8);
-  }, [purchaseRequests]);
-
-  const purchaseBudgetByDepartmentTotal = useMemo(() => {
-    return purchaseBudgetByDepartmentChartData.reduce((acc, entry) => acc + (Number((entry as any).value) || 0), 0);
-  }, [purchaseBudgetByDepartmentChartData]);
-
-  const purchaseBudgetByDepartmentAvg = useMemo(() => {
-    return averageValue(purchaseBudgetByDepartmentChartData as any);
-  }, [purchaseBudgetByDepartmentChartData]);
-
   const activityTrendData = useMemo(() => {
     const now = new Date();
     const months: { key: string; start: Date }[] = [];
@@ -1958,8 +1902,8 @@ export function DashboardPage() {
       months.push({ key, start: d });
     }
 
-    const byKey = new Map<string, { month: string; tickets: number; requests: number }>();
-    for (const m of months) byKey.set(m.key, { month: m.key, tickets: 0, requests: 0 });
+    const byKey = new Map<string, { month: string; tickets: number }>();
+    for (const m of months) byKey.set(m.key, { month: m.key, tickets: 0 });
 
     const keyFor = (value: unknown) => {
       const d = parseDateValue(value);
@@ -1974,20 +1918,12 @@ export function DashboardPage() {
       if (row) row.tickets += 1;
     }
 
-    for (const r of purchaseRequests) {
-      const k = keyFor((r as any)?.createdDate);
-      if (!k) continue;
-      const row = byKey.get(k);
-      if (row) row.requests += 1;
-    }
-
     return months.map((m) => byKey.get(m.key)!).filter(Boolean);
-  }, [maintenanceTickets, purchaseRequests]);
+  }, [maintenanceTickets]);
 
   const activityTrendTotals = useMemo(() => {
     const t = activityTrendData.reduce((acc, row) => acc + (Number((row as any)?.tickets) || 0), 0);
-    const r = activityTrendData.reduce((acc, row) => acc + (Number((row as any)?.requests) || 0), 0);
-    return { tickets: t, requests: r };
+    return { tickets: t };
   }, [activityTrendData]);
 
   const supplierChartData = useMemo(() => {
@@ -2125,7 +2061,7 @@ export function DashboardPage() {
               />
 
               <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Overview of assets, tickets, and requests
+                Overview of assets and tickets
               </p>
             </div>
           </div>
@@ -2154,8 +2090,6 @@ export function DashboardPage() {
         <StatCard title={`EOL (>${END_OF_LIFE_YEARS}y)`} value={extraStats.eolByAge} color="var(--chart-1)" icon={AlertTriangle} order={5} />
         <StatCard title="Maintenance Tickets" value={extraStats.ticketsTotal} color="var(--chart-blue-5)" icon={Wrench} order={6} />
         <StatCard title="Open Tickets" value={extraStats.ticketsOpen} color="var(--chart-4)" icon={AlertTriangle} order={7} />
-        <StatCard title="Purchase Requests" value={extraStats.requestsTotal} color="var(--chart-blue-1)" icon={Cog} order={8} />
-        <StatCard title="Pending Requests" value={extraStats.requestsPending} color="var(--primary)" icon={Cog} order={9} />
       </div>
 
       <section className="premium-surface mb-8 rounded-3xl p-5">
@@ -2375,64 +2309,6 @@ export function DashboardPage() {
                     background={{ fill: 'color-mix(in oklch, var(--muted) 35%, transparent)', radius: 10 }}
                   >
                     <LabelList dataKey="value" content={makeBarValuePercentLabel(maintenanceChartTotal, true)} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.14 }}
-          className="premium-surface flex h-full flex-col rounded-3xl p-5"
-        >
-          <h2 className="text-lg font-bold">Purchase Requests</h2>
-          <div className="mt-4 h-64">
-            {purchaseChartData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
-                No data
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={purchaseChartData} layout="vertical" margin={{ left: 12, right: 64, top: 8, bottom: 8 }}>
-                  <defs>
-                    <ChartGradient id="grad-purchase" color="var(--chart-2)" />
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis
-                    type="number"
-                    allowDecimals={false}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={140}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
-                    tickFormatter={(v) => truncateLabel(v, 14)}
-                  />
-                  {purchaseChartAvg > 0 ? (
-                    <ReferenceLine x={purchaseChartAvg} stroke="var(--muted-foreground)" strokeOpacity={0.45} strokeDasharray="4 4" />
-                  ) : null}
-                  <Tooltip
-                    content={({ label, payload }) => <TooltipCard label={label} payload={payload as any[]} total={purchaseChartTotal} />}
-                  />
-                  <Bar
-                    dataKey="value"
-                    fill="url(#grad-purchase)"
-                    stroke="var(--chart-2)"
-                    strokeOpacity={0.75}
-                    radius={[10, 10, 10, 10]}
-                    barSize={18}
-                    background={{ fill: 'color-mix(in oklch, var(--muted) 35%, transparent)', radius: 10 }}
-                  >
-                    <LabelList dataKey="value" content={makeBarValuePercentLabel(purchaseChartTotal, true)} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -2760,73 +2636,6 @@ export function DashboardPage() {
         <motion.section
           initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
           animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.28 }}
-          className="premium-surface flex h-full flex-col rounded-3xl p-5"
-        >
-          <h2 className="text-lg font-bold">PR Budget by Department</h2>
-          <div className="mt-4 h-64">
-            {purchaseBudgetByDepartmentChartData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
-                No data
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={purchaseBudgetByDepartmentChartData} layout="vertical" margin={{ left: 12, right: 64, top: 8, bottom: 8 }}>
-                  <defs>
-                    <ChartGradient id="grad-budget" color="var(--chart-2)" />
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }} />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={160}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12, fontWeight: 700 }}
-                    tickFormatter={(v) => truncateLabel(v, 18)}
-                  />
-                  {purchaseBudgetByDepartmentAvg > 0 ? (
-                    <ReferenceLine x={purchaseBudgetByDepartmentAvg} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="4 4" />
-                  ) : null}
-                  <Tooltip
-                    content={({ label, payload }) => {
-                      const fixed = (Array.isArray(payload) ? payload : []).map((p: any) => ({ ...p, value: Number(p?.value) || 0 }));
-                      return <TooltipCard label={label} payload={fixed as any[]} total={purchaseBudgetByDepartmentTotal} />;
-                    }}
-                  />
-                  <Bar
-                    dataKey="value"
-                    fill="url(#grad-budget)"
-                    stroke="var(--chart-2)"
-                    strokeOpacity={0.75}
-                    radius={[10, 10, 10, 10]}
-                    barSize={18}
-                    background={{ fill: 'color-mix(in oklch, var(--muted) 32%, transparent)', radius: 10 }}
-                  >
-                    <LabelList
-                      dataKey="value"
-                      content={(props: any) => {
-                        const raw = Number(props?.value ?? 0);
-                        const x = Number(props?.x ?? 0) + Number(props?.width ?? 0) + 8;
-                        const y = Number(props?.y ?? 0) + Number(props?.height ?? 0) / 2;
-                        return (
-                          <text x={x} y={y} dominantBaseline="middle" fill="var(--muted-foreground)" fontSize={11} fontWeight={800}>
-                            {formatMADCompact(raw)}
-                          </text>
-                        );
-                      }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
           transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: 0.3 }}
           className="premium-surface flex h-full flex-col rounded-3xl p-5"
         >
@@ -2858,7 +2667,7 @@ export function DashboardPage() {
                       const month = String(label ?? '');
                       const d = parseDateValue(month + '-01');
                       const pretty = d ? new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d) : month;
-                      return <TooltipCard label={pretty} payload={payload as any[]} total={activityTrendTotals.tickets + activityTrendTotals.requests} />;
+                      return <TooltipCard label={pretty} payload={payload as any[]} total={activityTrendTotals.tickets} />;
                     }}
                   />
                   <Line
@@ -2866,16 +2675,6 @@ export function DashboardPage() {
                     dataKey="tickets"
                     name="Tickets"
                     stroke="var(--chart-blue-2)"
-                    strokeWidth={3}
-                    dot={{ r: 3, strokeWidth: 2, fill: 'var(--background)' }}
-                    activeDot={{ r: 5 }}
-                    isAnimationActive={!shouldReduceMotion}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="requests"
-                    name="Requests"
-                    stroke="var(--chart-2)"
                     strokeWidth={3}
                     dot={{ r: 3, strokeWidth: 2, fill: 'var(--background)' }}
                     activeDot={{ r: 5 }}

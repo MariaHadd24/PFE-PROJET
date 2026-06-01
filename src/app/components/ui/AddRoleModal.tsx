@@ -75,7 +75,7 @@ export function AddRoleModal({ isOpen, onClose, onAdd }: AddRoleModalProps) {
         if (!open) handleClose();
       }}
     >
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
         <form onSubmit={handleSubmit} className="space-y-6">
           <DialogHeader>
             <DialogTitle>

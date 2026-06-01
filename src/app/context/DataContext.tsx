@@ -91,6 +91,7 @@ export type DataContextValue = {
   loading: boolean;
   error: string | null;
   refreshAll: () => Promise<void>;
+  refreshByScope: (scope: string | null) => Promise<void>;
 
   assets: Asset[];
   categories: Category[];
@@ -435,6 +436,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       loading: isLoading,
       error: error?.message || null,
       refreshAll,
+      refreshByScope,
       assets,
       categories,
       sites,

@@ -330,7 +330,7 @@ export function AddStockAssetModal({ isOpen, onClose, onAdd, categories, sites }
         if (!open) resetAndClose();
       }}
     >
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
         <form onSubmit={handleSubmit} className="space-y-6">
           <DialogHeader>
             <DialogTitle>Add New IT Asset</DialogTitle>

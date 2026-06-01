@@ -175,6 +175,42 @@
     @apply bg-background text-foreground;
   }
 
+  .blueprint-canvas {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(70rem 45rem at 110% -10%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 68%),
+      radial-gradient(48rem 30rem at -8% 26%, color-mix(in oklch, var(--chart-blue-5) 11%, transparent), transparent 72%),
+      linear-gradient(180deg, color-mix(in oklch, var(--background) 96%, var(--primary) 4%) 0%, color-mix(in oklch, var(--background) 88%, var(--muted) 12%) 100%);
+    background-attachment: fixed;
+  }
+
+  .blueprint-canvas::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image:
+      linear-gradient(to right, color-mix(in oklch, var(--primary) 12%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklch, var(--primary) 12%, transparent) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(120% 80% at 50% 0%, black 45%, transparent 100%);
+  }
+
+  .dark .blueprint-canvas {
+    background-image:
+      radial-gradient(62rem 42rem at 112% -12%, color-mix(in oklch, var(--primary) 30%, transparent), transparent 68%),
+      radial-gradient(44rem 30rem at -10% 32%, color-mix(in oklch, var(--chart-blue-5) 26%, transparent), transparent 72%),
+      linear-gradient(180deg, color-mix(in oklch, var(--background) 90%, #020617 10%) 0%, color-mix(in oklch, var(--background) 82%, #020617 18%) 100%);
+  }
+
+  .dark .blueprint-canvas::before {
+    opacity: 0.5;
+    background-image:
+      linear-gradient(to right, color-mix(in oklch, var(--primary) 18%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklch, var(--primary) 18%, transparent) 1px, transparent 1px);
+  }
+
   /* Custom animations for sophisticated logo */
   @keyframes spin-slow {
     from {
@@ -255,6 +291,7 @@
 
   .sidebar-scroll::-webkit-scrollbar {
     width: 10px;
+    height: 10px; /* Needed for horizontal scrollbar */
   }
 
   .sidebar-scroll::-webkit-scrollbar-track {
@@ -465,13 +502,15 @@
     background-color: transparent !important;
   }
 
+  .premium-table tbody tr { 
+    background: linear-gradient(90deg, color-mix(in oklch, var(--primary) 10%, transparent) 0%, transparent 40%, transparent 100%),
+                linear-gradient(180deg, color-mix(in oklch, var(--card) 94%, transparent), color-mix(in oklch, var(--primary) 6%, color-mix(in oklch, var(--muted) 10%, transparent))); 
+    border-radius: 12px; 
+    transition: all 0.2s ease; 
+  }
   .premium-table tbody td {
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in oklch, var(--card) 94%, transparent),
-        color-mix(in oklch, var(--primary) 6%, color-mix(in oklch, var(--muted) 10%, transparent))
-      );
+    background: transparent;
+    background-clip: padding-box;
     border-top: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
     border-bottom: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
   }
@@ -480,17 +519,6 @@
     border-left: 1px solid color-mix(in oklch, var(--border) 55%, transparent);
     border-top-left-radius: 12px;
     border-bottom-left-radius: 12px;
-    background-image:
-      linear-gradient(
-        90deg,
-        color-mix(in oklch, var(--primary) 18%, transparent),
-        transparent 65%
-      ),
-      linear-gradient(
-        180deg,
-        color-mix(in oklch, var(--card) 94%, transparent),
-        color-mix(in oklch, var(--primary) 6%, color-mix(in oklch, var(--muted) 10%, transparent))
-      );
   }
 
   .premium-table tbody tr > td:last-child {
@@ -499,23 +527,18 @@
     border-bottom-right-radius: 12px;
   }
 
+  .premium-table tbody tr:hover {
+    background: linear-gradient(90deg, color-mix(in oklch, var(--primary) 18%, transparent) 0%, color-mix(in oklch, var(--card) 82%, transparent) 48%, color-mix(in oklch, var(--card) 78%, transparent)),
+                linear-gradient(180deg, color-mix(in oklch, var(--card) 94%, transparent), color-mix(in oklch, var(--primary) 6%, color-mix(in oklch, var(--muted) 10%, transparent)));
+    box-shadow: 0 10px 30px color-mix(in oklch, var(--foreground) 10%, transparent);
+  }
+  
   .premium-table tbody tr:hover td {
-    background:
-      linear-gradient(
-        90deg,
-        color-mix(in oklch, var(--primary) 18%, transparent),
-        color-mix(in oklch, var(--card) 82%, transparent) 48%,
-        color-mix(in oklch, var(--card) 78%, transparent)
-      );
     border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
-    box-shadow:
-      0 10px 30px color-mix(in oklch, var(--foreground) 10%, transparent);
   }
 
   .premium-table tbody tr:hover td:first-child {
-    box-shadow:
-      -1px 0 0 color-mix(in oklch, var(--primary) 30%, transparent),
-      0 10px 30px color-mix(in oklch, var(--foreground) 10%, transparent);
+    box-shadow: -1px 0 0 color-mix(in oklch, var(--primary) 30%, transparent);
   }
 
   .premium-table tbody tr:last-child {
@@ -649,3 +672,36 @@
     line-height: 1.5;
   }
 }
+  .table-scrollbar {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--primary) 30%, transparent) transparent;
+    /* Render the horizontal scrollbar at the top by flipping the container
+       and flipping its immediate child back. This keeps content upright
+       while placing the scrollbar visually at the top. */
+    transform: rotateX(180deg);
+    -webkit-transform: rotateX(180deg);
+  }
+  .table-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .table-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .table-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    background-color: color-mix(in oklch, var(--primary) 30%, transparent);
+  }
+  .table-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--primary) 50%, transparent);
+  }
+
+  /* Keep the content readable by flipping the immediate child back upright. */
+  .table-scrollbar > * {
+    transform: rotateX(180deg);
+    -webkit-transform: rotateX(180deg);
+  }
+

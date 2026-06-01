@@ -79,11 +79,14 @@ function dynamicValue(row: PrinterTonerIncident, header: string): unknown {
   if (n.includes('intervention')) return row.interventionDate;
   if (n.includes('duree')) return row.duration;
   if (n.includes('ticket')) return row.ticketNumber;
+  if (n === 'printer' || n === 'printer_name') return row.printerName;
   if (n.includes('printer_name')) return row.printerName;
   if (n === 'site') return row.site;
-  if (n === 'type_of_demand' || (n.includes('type') && n.includes('demand'))) return row.demandType;
+  if (n === 'claim' || n === 'date_claim' || n === 'claim_date') return row.claimDate;
+  if (n === 'type' || n === 'type_of_demand' || (n.includes('type') && n.includes('demand'))) return row.demandType;
   if (n === 's_n' || n === 'sn' || n.includes('serial')) return row.printerSerial;
   if (n.includes('model')) return row.printerModel;
+  if (n === 'nature' || n === 'issue' || n === 'problem') return row.problemNature;
   if (n.includes('nature_du_prob')) return row.problemNature;
   return rawVal;
 }
@@ -236,6 +239,22 @@ export function PrinterIncidentsPage() {
     const candidate = sortedRows.find((r) => Array.isArray(r.rawHeaders) && r.rawHeaders.length > 0);
     return (candidate?.rawHeaders ?? []) as string[];
   }, [sortedRows]);
+
+  const tableColumns = useMemo(
+    () => [
+      { key: 'site', label: 'Site' },
+      { key: 'printerName', label: 'Printer' },
+      { key: 'demandType', label: 'Type' },
+      { key: 'ticketNumber', label: 'Ticket' },
+      { key: 'problemNature', label: 'Nature' },
+      { key: 'printerSerial', label: 'S/N' },
+      { key: 'printerModel', label: 'Model' },
+      { key: 'claimDate', label: 'Claim date' },
+      { key: 'interventionDate', label: 'Intervention date' },
+      { key: 'duration', label: 'Duration' },
+    ],
+    [],
+  );
 
   const resetForm = useCallback(() => {
     setFormSite('');
@@ -391,8 +410,8 @@ export function PrinterIncidentsPage() {
   );
 
   return (
-    <div className="w-full">
-      <div className="w-full bg-card text-card-foreground rounded-xl border border-border shadow-sm">
+    <div className="space-y-8 pb-12 relative">
+      <div className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl">
         <div className="px-6 pt-6">
           <div className="page-hero">
             <div className="page-hero__topline" aria-hidden />
@@ -595,136 +614,76 @@ export function PrinterIncidentsPage() {
             ) : sortedRows.length === 0 ? (
               <div className="text-sm text-muted-foreground">No incidents found.</div>
             ) : (
-              <div className="overflow-x-auto">
-                {rawHeaders.length > 0 ? (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-muted-foreground border-b border-border">
-                        {rawHeaders.map((h) => (
-                          <th key={h} className="text-left font-semibold py-3 pr-3 whitespace-nowrap">
-                            {h}
-                          </th>
-                        ))}
-                        <th className="text-left font-semibold py-3 pr-3 whitespace-nowrap">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedRows.map((i) => {
-                        const st = (i.status || (i.interventionDate ? 'INTERVENUE' : 'NON_INTERVENUE')) as
-                          | 'NON_INTERVENUE'
-                          | 'INTERVENUE';
+              <div className="overflow-x-auto table-scrollbar sidebar-scroll">
+                <table className="min-w-[1200px] w-full premium-table">
+                  <thead>
+                    <tr>
+                      {tableColumns.map((col) => (
+                        <th
+                          key={col.key}
+                          className="px-8 py-3 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50 whitespace-nowrap"
+                        >
+                          {col.label}
+                        </th>
+                      ))}
+                      <th className="px-8 py-3 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50 whitespace-nowrap">
+                        Status
+                      </th>
+                      <th className="px-8 py-3 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50 whitespace-nowrap">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedRows.map((i) => {
+                      const st = (i.status || (i.interventionDate ? 'INTERVENUE' : 'NON_INTERVENUE')) as
+                        | 'NON_INTERVENUE'
+                        | 'INTERVENUE';
 
-                        return (
-                          <tr key={i.id} className="border-b border-border last:border-0">
-                            {rawHeaders.map((h) => (
-                              <td key={h} className="py-3 pr-3 whitespace-nowrap">
-                                {formatCell(h, dynamicValue(i, h))}
-                              </td>
-                            ))}
-                            <td className="py-3 pr-3 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                {st !== 'INTERVENUE' ? (
-                                  <button
-                                    className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-60"
-                                    disabled={markingId === i.id}
-                                    onClick={() => void markIntervened(i.id)}
-                                  >
-                                    {markingId === i.id ? '…' : 'Mark as intervened'}
-                                  </button>
-                                ) : (
-                                  <span className="text-muted-foreground">{statusLabel(st)}</span>
-                                )}
-                                <button
-                                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-60"
-                                  disabled={saving || deletingId === i.id}
-                                  onClick={() => openEdit(i)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent text-destructive disabled:opacity-60"
-                                  disabled={deletingId === i.id}
-                                  onClick={() => void deleteIncident(i.id)}
-                                >
-                                  {deletingId === i.id ? '…' : 'Delete'}
-                                </button>
-                              </div>
+                      return (
+                        <tr key={i.id}>
+                          {tableColumns.map((col) => (
+                            <td key={col.key} className="px-8 py-5 whitespace-nowrap text-[12px] font-medium text-foreground/80">
+                              {formatCell(col.label, dynamicValue(i, col.label))}
                             </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-muted-foreground border-b border-border">
-                        <th className="text-left font-semibold py-3">Site</th>
-                        <th className="text-left font-semibold py-3">Printer</th>
-                        <th className="text-left font-semibold py-3">Type</th>
-                        <th className="text-left font-semibold py-3">Ticket</th>
-                        <th className="text-left font-semibold py-3">Nature</th>
-                        <th className="text-left font-semibold py-3">S/N</th>
-                        <th className="text-left font-semibold py-3">Model</th>
-                        <th className="text-left font-semibold py-3">Claim</th>
-                        <th className="text-left font-semibold py-3">Intervention date</th>
-                        <th className="text-left font-semibold py-3">Duration</th>
-                        <th className="text-left font-semibold py-3">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedRows.map((i) => {
-                        const st = (i.status || (i.interventionDate ? 'INTERVENUE' : 'NON_INTERVENUE')) as
-                          | 'NON_INTERVENUE'
-                          | 'INTERVENUE';
-
-                        return (
-                          <tr key={i.id} className="border-b border-border last:border-0">
-                            <td className="py-3 pr-3">{String(i.site ?? '').trim() || '-'}</td>
-                            <td className="py-3 pr-3">{String(i.printerName ?? '').trim() || '-'}</td>
-                            <td className="py-3 pr-3">{String(i.demandType ?? '').trim() || '-'}</td>
-                            <td className="py-3 pr-3">{String(i.ticketNumber ?? '').trim() || '-'}</td>
-                            <td className="py-3 pr-3">{String(i.problemNature ?? '').trim() || '-'}</td>
-                            <td className="py-3 pr-3">{String(i.printerSerial ?? '').trim() || '-'}</td>
-                            <td className="py-3 pr-3">{String(i.printerModel ?? '').trim() || '-'}</td>
-                            <td className="py-3 pr-3">{formatDate(i.claimDate)}</td>
-                            <td className="py-3 pr-3">{formatDate(i.interventionDate)}</td>
-                            <td className="py-3 pr-3">{formatDurationJHM(i.duration)}</td>
-                            <td className="py-3 pr-3 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                {st !== 'INTERVENUE' ? (
-                                  <button
-                                    className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-60"
-                                    disabled={markingId === i.id}
-                                    onClick={() => void markIntervened(i.id)}
-                                  >
-                                    {markingId === i.id ? '…' : 'Mark as intervened'}
-                                  </button>
-                                ) : (
-                                  <span className="text-muted-foreground">{statusLabel(st)}</span>
-                                )}
+                          ))}
+                          <td className="px-8 py-5 whitespace-nowrap text-[12px] font-medium text-foreground/80">
+                            {statusLabel(st)}
+                          </td>
+                          <td className="px-8 py-5 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {st !== 'INTERVENUE' ? (
                                 <button
-                                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-60"
-                                  disabled={saving || deletingId === i.id}
-                                  onClick={() => openEdit(i)}
+                                  className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-cyan-600 disabled:opacity-60"
+                                  disabled={markingId === i.id}
+                                  onClick={() => void markIntervened(i.id)}
                                 >
-                                  Edit
+                                  {markingId === i.id ? '…' : 'Mark as intervened'}
                                 </button>
-                                <button
-                                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent text-destructive disabled:opacity-60"
-                                  disabled={deletingId === i.id}
-                                  onClick={() => void deleteIncident(i.id)}
-                                >
-                                  {deletingId === i.id ? '…' : 'Delete'}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
+                              ) : (
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">OK</span>
+                              )}
+                              <button
+                                className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-cyan-600 disabled:opacity-60"
+                                disabled={saving || deletingId === i.id}
+                                onClick={() => openEdit(i)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 disabled:opacity-60"
+                                disabled={deletingId === i.id}
+                                onClick={() => void deleteIncident(i.id)}
+                              >
+                                {deletingId === i.id ? '…' : 'Delete'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

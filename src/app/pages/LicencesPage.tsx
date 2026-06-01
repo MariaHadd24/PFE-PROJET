@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { useData } from '../context/DataContext';
 import { AddLicenceModal } from '../components/ui/AddLicenceModal';
+import { motion } from 'motion/react';
 
 export function LicencesPage() {
   const { licences, addLicence, loading, sites } = useData();
@@ -82,50 +83,89 @@ export function LicencesPage() {
         sites={sites}
       />
 
-      <div className="premium-surface">
-        <div className="overflow-x-auto">
+      {/* Table Premium */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl"
+      >
+        <div className="px-8 py-6 border-b border-border/50 bg-gradient-to-r from-muted/30 to-transparent flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <LayoutDashboard className="w-4 h-4" />
+            </div>
+            <h2 className="text-lg font-black tracking-tight text-foreground uppercase">Licence Registry</h2>
+          </div>
+          <div className="px-3 py-1 rounded-full bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            {sorted.length} Total Records
+          </div>
+        </div>
+
+        <div className="overflow-x-auto sidebar-scroll">
           <table className="w-full premium-table">
-            <thead className="bg-muted/40 border-b border-border">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">NAME</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">PLANT</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">KEY</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">MANUFACTURER</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">PURCHASE DATE</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">EXPIRY DATE</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">SUPPLIER</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">CREATED AT</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">UPDATED AT</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">ACTIONS</th>
+            <thead>
+              <tr className="bg-muted/20">
+                {['Name', 'Plant', 'Key', 'Manufacturer', 'Purchase', 'Expiry', 'Supplier', 'Created', 'Updated', 'Actions'].map((h) => (
+                  <th key={h} className="px-8 py-4 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="divide-y divide-border/40">
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={10} className="px-8 py-10 text-center text-[13px] text-muted-foreground font-medium">
                     {loading ? 'Loading…' : 'No licences found.'}
                   </td>
                 </tr>
               ) : (
                 sorted.map((l) => (
-                  <tr key={l.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{l.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{l.plant}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{l.key}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{l.manufacturer}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{l.purchaseDate}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{l.expiryDate}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{l.supplier}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{l.createdAt}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{l.updatedAt}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">—</td>
+                  <tr key={l.id} className="group hover:bg-primary/5 transition-all duration-300">
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-[13px] font-bold text-foreground leading-none">{l.name}</span>
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-[12px] font-bold text-foreground/80 bg-muted/50 px-2 py-0.5 rounded-md border border-border/40">
+                        {l.plant}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] text-muted-foreground font-medium">
+                      {l.key}
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] text-foreground font-black tracking-tight">
+                      {l.manufacturer}
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-[11px] font-bold text-foreground/60 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        {l.purchaseDate}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-[11px] font-bold text-foreground/60 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                        {l.expiryDate}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] font-bold text-foreground/70">
+                      {l.supplier}
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap text-[11px] font-medium text-muted-foreground/60">
+                      {l.createdAt}
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap text-[11px] font-medium text-muted-foreground/60">
+                      {l.updatedAt}
+                    </td>
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] text-muted-foreground">—</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

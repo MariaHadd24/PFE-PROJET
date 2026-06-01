@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { OrderStatus } from '../../types';
+import { cn } from './utils';
 
 // ─── Config des statuts ───────────────────────────────────────────────────────
 
@@ -24,9 +25,10 @@ const STATUS_META: Record<
     label: string;
     labelFr: string;
     icon: React.ElementType;
-    badge: string;      // classes Tailwind badge
-    dot: string;        // couleur point timeline
-    menu: string;       // classes dropdown item
+    badge: string;      
+    dot: string;        
+    menu: string;       
+    glow: string;
   }
 > = {
   Draft: {
@@ -36,6 +38,7 @@ const STATUS_META: Record<
     badge: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
     dot: 'bg-slate-400',
     menu: 'text-slate-700 dark:text-slate-300',
+    glow: 'from-slate-400/20 to-transparent',
   },
   Approved: {
     label: 'Approved',
@@ -44,6 +47,7 @@ const STATUS_META: Record<
     badge: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/70 dark:text-blue-300 dark:border-blue-800',
     dot: 'bg-blue-500',
     menu: 'text-blue-700 dark:text-blue-300',
+    glow: 'from-blue-500/20 to-transparent',
   },
   Ordered: {
     label: 'Ordered',
@@ -52,6 +56,7 @@ const STATUS_META: Record<
     badge: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-800',
     dot: 'bg-amber-500',
     menu: 'text-amber-700 dark:text-amber-300',
+    glow: 'from-amber-500/20 to-transparent',
   },
   Received: {
     label: 'Received',
@@ -60,6 +65,7 @@ const STATUS_META: Record<
     badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
     dot: 'bg-emerald-500',
     menu: 'text-emerald-700 dark:text-emerald-300',
+    glow: 'from-emerald-500/20 to-transparent',
   },
   Closed: {
     label: 'Closed',
@@ -68,10 +74,10 @@ const STATUS_META: Record<
     badge: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700',
     dot: 'bg-gray-400',
     menu: 'text-gray-600 dark:text-gray-400',
+    glow: 'from-gray-400/10 to-transparent',
   },
 };
 
-// Transitions autorisées
 const ALLOWED_NEXT: Record<OrderStatus, OrderStatus[]> = {
   Draft:    ['Approved'],
   Approved: ['Ordered', 'Draft'],
@@ -80,16 +86,12 @@ const ALLOWED_NEXT: Record<OrderStatus, OrderStatus[]> = {
   Closed:   [],
 };
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 interface OrderStatusTrackerProps {
   poId: string;
   currentStatus: OrderStatus;
   canManage: boolean;
   onStatusChange: (poId: string, newStatus: OrderStatus) => Promise<void>;
 }
-
-// ─── Composant ────────────────────────────────────────────────────────────────
 
 export function OrderStatusTracker({
   poId,
@@ -106,7 +108,6 @@ export function OrderStatusTracker({
   const allowed = ALLOWED_NEXT[currentStatus];
   const canChange = canManage && allowed.length > 0;
 
-  // Fermeture clic extérieur
   React.useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -137,98 +138,103 @@ export function OrderStatusTracker({
 
   return (
     <div className="relative inline-block" ref={dropdownRef}>
-      {/* Badge statut cliquable */}
-      <button
+      {/* Badge statut premium */}
+      <motion.button
         onClick={() => canChange && setOpen((v) => !v)}
         disabled={loading || !canChange}
-        className={`
-          inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border
-          transition-all duration-150 select-none
-          ${meta.badge}
-          ${canChange ? 'cursor-pointer hover:shadow-sm hover:scale-[1.02]' : 'cursor-default'}
-          ${loading ? 'opacity-60' : ''}
-        `}
-        title={canChange ? 'Cliquer pour changer le statut' : undefined}
-      >
-        {loading ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : (
-          <Icon className="h-3 w-3" />
+        whileHover={canChange ? { scale: 1.05, y: -1 } : {}}
+        whileTap={canChange ? { scale: 0.95 } : {}}
+        className={cn(
+          "relative group inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest border transition-all duration-300 shadow-sm",
+          meta.badge,
+          canChange ? "cursor-pointer hover:shadow-lg" : "cursor-default opacity-85",
+          loading && "opacity-50 grayscale"
         )}
-        <span>{meta.labelFr}</span>
-        {canChange && !loading && <ChevronDown className="h-3 w-3 opacity-60" />}
+      >
+        <div className={cn("absolute inset-0 rounded-full bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity", meta.glow)} />
+        {loading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Icon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+        )}
+        <span className="relative z-10">{meta.labelFr}</span>
+        {canChange && !loading && (
+          <ChevronDown className={cn("h-3 w-3 transition-transform duration-300", open && "rotate-180")} />
+        )}
         {!canChange && currentStatus !== 'Closed' && <Lock className="h-2.5 w-2.5 opacity-40" />}
-      </button>
+      </motion.button>
 
-      {/* Dropdown */}
+      {/* Dropdown Style Industrial */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="
-              absolute left-0 top-full mt-1.5 z-50 min-w-[200px]
-              bg-card border border-border rounded-xl shadow-xl
-              overflow-hidden
-            "
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="panel-frame absolute left-0 top-full mt-2 z-[100] min-w-[220px] bg-card/90 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl overflow-hidden"
           >
-            {/* Mini timeline dans le dropdown */}
-            <div className="px-3 pt-3 pb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Changer le statut
+            <div className="px-4 pt-4 pb-2 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 px-1">
+                Workflow Status
               </p>
-              <div className="flex flex-col gap-1">
+              
+              <div className="flex flex-col gap-1.5 relative z-10">
                 {PO_STATUS_FLOW.map((st, idx) => {
                   const m = STATUS_META[st];
-                  const StIcon = m.icon;
                   const isActive = st === currentStatus;
                   const isPast = PO_STATUS_FLOW.indexOf(st) < PO_STATUS_FLOW.indexOf(currentStatus);
                   const isNext = allowed.includes(st);
                   const isDisabled = !isNext && !isActive && !isPast;
 
                   return (
-                    <div key={st} className="flex items-center gap-2.5">
-                      {/* Connecteur vertical */}
-                      <div className="flex flex-col items-center" style={{ width: 16 }}>
+                    <div key={st} className="flex items-center gap-3.5 group/item">
+                      {/* Timeline Connector */}
+                      <div className="flex flex-col items-center" style={{ width: 20 }}>
                         <div
-                          className={`
-                            w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0
-                            ${isActive ? `${m.dot} border-transparent` : ''}
-                            ${isPast ? 'bg-emerald-500 border-transparent' : ''}
-                            ${isDisabled && !isNext ? 'bg-muted border-border' : ''}
-                            ${isNext ? `${m.dot} border-transparent opacity-70` : ''}
-                          `}
+                          className={cn(
+                            "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-300",
+                            isActive ? `${m.dot} border-transparent shadow-[0_0_8px_rgba(31,197,255,0.4)]` : "border-border",
+                            isPast ? "bg-emerald-500 border-transparent" : "",
+                            isNext ? "border-primary animate-pulse" : "",
+                            isDisabled && "bg-muted/50 opacity-40"
+                          )}
                         >
-                          {isPast && <Check className="h-2 w-2 text-white" />}
-                          {isActive && <span className="block w-1.5 h-1.5 rounded-full bg-white" />}
+                          {isPast && <Check className="h-2.5 w-2.5 text-white" />}
+                          {isActive && <motion.div layoutId="active-status" className="w-1.5 h-1.5 rounded-full bg-white" />}
                         </div>
                         {idx < PO_STATUS_FLOW.length - 1 && (
-                          <div className={`w-0.5 h-3 ${isPast ? 'bg-emerald-400' : 'bg-border'}`} />
+                          <div className={cn(
+                            "w-0.5 h-4 transition-colors duration-500",
+                            isPast ? "bg-emerald-400" : "bg-border"
+                          )} />
                         )}
                       </div>
 
-                      {/* Bouton / label */}
+                      {/* Item Button */}
                       {isNext ? (
                         <button
                           onClick={() => handleSelect(st)}
-                          className={`
-                            flex-1 text-left text-xs font-semibold px-2 py-1 rounded-md
-                            ${m.menu}
-                            hover:bg-muted/60 transition-colors duration-100
-                          `}
+                          className={cn(
+                            "flex-1 text-left text-[11px] font-bold px-3 py-2 rounded-xl transition-all duration-200 border border-transparent hover:border-primary/30 hover:bg-primary/5 group/btn",
+                            m.menu
+                          )}
                         >
-                          → {m.labelFr}
+                          <span className="flex items-center justify-between">
+                            {m.labelFr}
+                            <span className="opacity-0 group-hover/btn:opacity-100 translate-x-[-4px] group-hover/btn:translate-x-0 transition-all">→</span>
+                          </span>
                         </button>
                       ) : (
                         <span
-                          className={`
-                            flex-1 text-xs px-2 py-1
-                            ${isActive ? 'font-bold text-foreground' : 'text-muted-foreground'}
-                          `}
+                          className={cn(
+                            "flex-1 text-[11px] px-3 py-2 font-medium tracking-tight",
+                            isActive ? "font-black text-foreground" : "text-muted-foreground opacity-60",
+                            isDisabled && "grayscale italic"
+                          )}
                         >
-                          {isActive ? `● ${m.labelFr}` : m.labelFr}
+                          {m.labelFr}
                         </span>
                       )}
                     </div>
@@ -237,10 +243,9 @@ export function OrderStatusTracker({
               </div>
             </div>
 
-            {/* Pied du dropdown */}
-            <div className="border-t border-border px-3 py-2">
-              <p className="text-[9px] text-muted-foreground">
-                Seules les transitions autorisées sont disponibles.
+            <div className="bg-muted/30 px-4 py-3 mt-2 border-t border-border/40">
+              <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-relaxed">
+                {currentStatus === 'Closed' ? 'La commande est verrouillée.' : 'Seules les étapes logiques sont activées.'}
               </p>
             </div>
           </motion.div>
@@ -249,3 +254,4 @@ export function OrderStatusTracker({
     </div>
   );
 }
+

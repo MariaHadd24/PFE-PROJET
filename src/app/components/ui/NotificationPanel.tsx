@@ -1,14 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Bell, X, Check, CheckCheck, Trash2, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
+import { Bell, X, Check, CheckCheck, Trash2, AlertCircle, CheckCircle, Info, AlertTriangle, Filter } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function NotificationPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
-  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification, 
+    clearAll,
+    preferences,
+    setPreferences 
+  } = useNotifications();
   const { user } = useAuth();
 
   if ((user?.role ?? 'Reader') === 'Reader') {
@@ -53,161 +63,224 @@ export function NotificationPanel() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-emerald-500" />;
       case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-500" />;
+        return <AlertCircle className="w-5 h-5 text-rose-500" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-orange-500" />;
+        return <AlertTriangle className="w-5 h-5 text-amber-500" />;
       default:
         return <Info className="w-5 h-5 text-blue-500" />;
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-50 border-green-200 hover:bg-green-100';
-      case 'error':
-        return 'bg-red-50 border-red-200 hover:bg-red-100';
-      case 'warning':
-        return 'bg-orange-50 border-orange-200 hover:bg-orange-100';
-      default:
-        return 'bg-blue-50 border-blue-200 hover:bg-blue-100';
+  const getNotificationStyles = (type: string, read: boolean) => {
+    if (!read) {
+      switch (type) {
+        case 'success': return 'bg-emerald-50/40 dark:bg-emerald-500/10 border-emerald-200/50 dark:border-emerald-500/20';
+        case 'error': return 'bg-rose-50/40 dark:bg-rose-500/10 border-rose-200/50 dark:border-rose-500/20';
+        case 'warning': return 'bg-amber-50/40 dark:bg-amber-500/10 border-amber-200/50 dark:border-amber-500/20';
+        default: return 'bg-blue-50/40 dark:bg-blue-500/10 border-blue-200/50 dark:border-blue-500/20';
+      }
     }
+    return 'bg-transparent border-transparent hover:bg-black/5 dark:hover:bg-white/5';
   };
 
   return (
     <div className="relative" ref={panelRef}>
       {/* Notification Bell Button */}
-      <button
+      <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105"
+        className="chip-industrial relative inline-flex h-11 w-11 items-center justify-center rounded-xl text-foreground transition-all duration-300 hover:border-cyan-300/60 dark:text-gray-200 dark:hover:border-cyan-300/45 group overflow-hidden"
+        whileHover={{ scale: 1.08, y: -3 }}
+        whileTap={{ scale: 0.93 }}
+        title="Notifications"
       >
-        <Bell className="w-5 h-5" />
+        <motion.div 
+          className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-300"
+          animate={{ opacity: [0.1, 0.2, 0.1] }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+        <Bell className="w-5 h-5 relative z-10 transition-all duration-300 group-hover:scale-110" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] font-bold rounded-full shadow-lg animate-pulse">
+          <motion.span 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-gradient-to-br from-blue-600 to-cyan-500 text-white text-[10px] font-bold rounded-full shadow-lg z-20 border border-white/20"
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          </motion.span>
         )}
-      </button>
+      </motion.button>
 
       {/* Notification Panel */}
-      {isOpen && (
-        <div className="absolute right-0 top-14 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-          {/* Header */}
-          <div className="p-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                <Bell className="w-5 h-5" />
-                Notifications
-              </h3>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            {notifications.length > 0 && (
-              <div className="flex gap-2">
-                <button
-                  onClick={markAllAsRead}
-                  className="flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors"
-                >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  Mark all as read
-                </button>
-                <button
-                  onClick={clearAll}
-                  className="flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Clear all
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Notifications List */}
-          <div className="max-h-[500px] overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Bell className="w-8 h-8 text-gray-400" />
-                </div>
-                <p className="text-gray-500 font-medium">No notifications</p>
-                <p className="text-gray-400 text-sm mt-1">You're all caught up!</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    className={`p-4 transition-all duration-200 cursor-pointer relative ${
-                      !notification.read ? 'bg-blue-50/50' : 'bg-white hover:bg-gray-50'
-                    }`}
-                  >
-                    {!notification.read && (
-                      <div className="absolute top-4 left-2 w-2 h-2 bg-blue-500 rounded-full"></div>
-                    )}
-                    
-                    <div className="flex gap-3 ml-3">
-                      {/* Icon */}
-                      <div className="flex-shrink-0 mt-0.5">
-                        {getIcon(notification.type)}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="font-semibold text-gray-900 text-sm">
-                            {notification.title}
-                          </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteNotification(notification.id);
-                            }}
-                            className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-lg transition-colors"
-                          >
-                            <X className="w-4 h-4 text-gray-400" />
-                          </button>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                          {notification.message}
-                        </p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-400">
-                            {getTimeAgo(notification.timestamp)}
-                          </span>
-                          {notification.action && (
-                            <button
-                              onClick={() => handleNotificationClick(notification)}
-                              className="text-xs font-medium text-primary hover:opacity-90 transition-colors"
-                            >
-                              {notification.action.label} →
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="panel-frame absolute right-0 top-14 w-[400px] bg-card/90 dark:bg-card/75 backdrop-blur-xl shadow-2xl rounded-2xl z-[100] overflow-hidden border border-border/60"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-border/50 bg-gradient-to-br from-primary/10 via-cyan-400/5 to-transparent relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.1),transparent_70%)] pointer-events-none" />
+              
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <Bell className="w-4 h-4" />
                   </div>
-                ))}
+                  <h3 className="font-bold text-base tracking-tight text-foreground">
+                    Notifications
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={markAllAsRead}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    Read all
+                  </button>
+                  <button
+                    onClick={clearAll}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Clear
+                  </button>
+                </div>
+
+                {/* Filter toggle */}
+                <button
+                  onClick={() => setPreferences({ onlyRequests: !preferences.onlyRequests })}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${
+                    preferences.onlyRequests 
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
+                      : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                  }`}
+                  title="Filter requests only"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  Requests
+                </button>
+              </div>
+            </div>
+
+            {/* Notifications List */}
+            <div className="max-h-[480px] overflow-y-auto sidebar-scroll">
+              {notifications.length === 0 ? (
+                <div className="p-10 text-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,211,238,0.05),transparent_70%)] pointer-events-none" />
+                  <div className="relative z-10">
+                    <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-1 ring-border shadow-inner">
+                      <Bell className="w-8 h-8 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-foreground font-semibold text-sm">No notifications</p>
+                    <p className="text-muted-foreground text-xs mt-1 max-w-[200px] mx-auto leading-relaxed">
+                      {preferences.onlyRequests 
+                        ? "You don't have any pending requests to review." 
+                        : "Everything is quiet for now. You're all caught up!"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {notifications.map((notification) => (
+                    <motion.div
+                      layout
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className={`group p-3.5 rounded-xl border transition-all duration-300 cursor-pointer relative overflow-hidden ${
+                        getNotificationStyles(notification.type, notification.read)
+                      }`}
+                      whileHover={{ x: 4 }}
+                    >
+                      {!notification.read && (
+                        <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-cyan-400" />
+                      )}
+                      
+                      <div className="flex gap-3.5">
+                        {/* Icon Container */}
+                        <div className="flex-shrink-0">
+                          <div className={`p-2 rounded-xl bg-card border border-border shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                            {getIcon(notification.type)}
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={`font-bold text-sm tracking-tight transition-colors ${
+                              !notification.read ? 'text-foreground' : 'text-foreground/70'
+                            }`}>
+                              {notification.title}
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notification.id);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/10 hover:text-rose-500 rounded-lg transition-all text-muted-foreground"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-[13px] leading-relaxed text-muted-foreground mt-1 line-clamp-2">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-border/40">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                              <span className="w-1 h-1 rounded-full bg-border" />
+                              {getTimeAgo(notification.timestamp)}
+                            </span>
+                            {notification.action && (
+                              <button
+                                onClick={() => handleNotificationClick(notification)}
+                                className="text-[11px] font-bold text-primary hover:text-cyan-600 transition-colors uppercase tracking-widest flex items-center gap-1 group/btn"
+                              >
+                                {notification.action.label}
+                                <span className="group-hover/btn:translate-x-1 transition-transform inline-block">→</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {notifications.length > 0 && (
+              <div className="p-3 bg-muted/30 border-t border-border/50 text-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+                <button 
+                  onClick={() => {
+                    navigate('/audit-logs');
+                    setIsOpen(false);
+                  }}
+                  className="text-xs font-bold text-muted-foreground hover:text-foreground transition-all uppercase tracking-widest relative z-10"
+                >
+                  View all activity logs
+                </button>
               </div>
             )}
-          </div>
-
-          {/* Footer */}
-          {notifications.length > 0 && (
-            <div className="p-3 bg-gray-50 border-t border-gray-200 text-center">
-              <button className="text-sm font-medium text-primary hover:opacity-90 transition-colors">
-                View all notifications
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

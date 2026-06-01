@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Send, X } from 'lucide-react';
+import { Send, X, Bot, User as UserIcon, MessageSquare, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { chatAssistant, type ChatHistoryItem } from '../../data/api';
 import { cn } from './utils';
+import { motion, AnimatePresence } from 'motion/react';
 
 type ChatAction = {
   label: string;
@@ -25,8 +26,7 @@ function sleep(ms: number) {
 }
 
 function humanDelayMs() {
-  // Looks like a human is typing: 3–5 seconds.
-  return 3000 + Math.floor(Math.random() * 2000);
+  return 2000 + Math.floor(Math.random() * 1500);
 }
 
 function stripDiacritics(input: string) {
@@ -42,25 +42,16 @@ function includesAny(haystack: string, needles: string[]) {
 }
 
 function isSiteRelatedQuestion(normalized: string) {
-  // Only allow questions about this application's modules/features.
-  // Keep this intentionally broad: if the user mentions any module term, we consider it in-scope.
   return includesAny(normalized, [
-    // General / navigation
     'site', 'app', 'application', 'module', 'menu', 'page', 'dashboard',
-    // Stock / assets
     'asset', 'assets', 'stock', 'inventaire', 'inventory', 'available', 'assigned', 'inrepair', 'retired',
     'import', 'excel', 'xlsx', 'xls', 'export', 'qr', 'scan', 'barcode', 'threshold', 'low stock',
-    // Assignments
     'assignment', 'assignments', 'assign', 'affectation', 'affecter',
-    // Orders / purchasing
     'order', 'orders', 'achat', 'achats', 'purchase', 'procurement',
     'bon de commande', 'bc', 'bl',
-    // Maintenance
     'maintenance', 'ticket', 'tickets', 'repair', 'reparation',
-    // Admin / audit
     'admin', 'administration', 'utilisateur', 'users', 'sites', 'categories', 'suppliers', 'departments',
     'audit', 'logs', 'journal',
-    // Vendor / reporting
     'vendor', 'fournisseur', 'portal', 'report', 'reporting', 'rapport',
   ]);
 }
@@ -84,12 +75,12 @@ export function ChatbotWidget() {
 
   const suggestedQuestions = useMemo(
     () => [
-      'How many assets are available / assigned / in repair?',
-      'How do I import an Excel file into stock?',
-      'I want to add a new asset',
-      'Create a new assignment',
-      'Create a maintenance ticket',
-      'Where can I see audit logs and reporting?'
+      'Statistiques du stock ?',
+      'Comment importer un fichier Excel ?',
+      'Ajouter un nouvel asset',
+      'Créer une affectation',
+      'Ouvrir un ticket de maintenance',
+      'Où sont les rapports ?'
     ],
     [],
   );
@@ -97,7 +88,7 @@ export function ChatbotWidget() {
   const greeting = useMemo(() => {
     const name = String(user?.name ?? '').trim();
     const who = name ? ` ${name}` : '';
-    return `Hi${who}! I’m the site assistant. I can only answer questions related to this application’s features (Stock, Assignments, Orders, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting). Ask a question or click a suggestion.`;
+    return `Bonjour${who}! Je suis votre assistant. Je peux répondre à vos questions sur le Stock, les Affectations, les Commandes, la Maintenance, et le Reporting. Posez-moi une question ou utilisez les suggestions ci-dessous.`;
   }, [user?.name]);
 
   useEffect(() => {
@@ -135,7 +126,7 @@ export function ChatbotWidget() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [isOpen, messages.length]);
+  }, [isOpen, messages]);
 
   const pushAssistant = (payload: Omit<ChatMessage, 'id' | 'createdAt' | 'role'> & Partial<Pick<ChatMessage, 'actions'>>) => {
     setMessages((prev) => [
@@ -182,7 +173,6 @@ export function ChatbotWidget() {
   };
 
   const buildHistoryForLlm = (): ChatHistoryItem[] => {
-    // Keep the last few turns, skip the initial welcome.
     const slice = messages.filter((m) => m.id !== 'welcome' && !m.isTyping).slice(-10);
     return slice.map((m) => ({ role: m.role, text: m.text }));
   };
@@ -200,20 +190,18 @@ export function ChatbotWidget() {
 
     if (!q) {
       return {
-        text: 'Type a question (e.g. “import excel”, “maintenance ticket”, “new asset”…).',
+        text: 'Tapez une question (ex: "import excel", "ticket maintenance", "nouvel asset"...).',
       };
     }
 
-    // Hard guard: out-of-scope questions should not be answered.
-    // This prevents the LLM from responding to arbitrary/general questions.
     if (!isSiteRelatedQuestion(q) && !includesAny(q, ['bonjour', 'salut', 'hello', 'hi'])) {
       return {
         text:
-          'I can only answer questions about this site and its modules (Stock, Assignments, Orders, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting).',
+          'Désolé, je ne peux répondre qu\'aux questions concernant cette application (Stock, Affectations, Commandes, Maintenance, Administration, Audit, Reporting).',
         actions: [
-          { label: 'Dashboard', link: '/dashboard' },
-          { label: 'Assets IT', link: '/stock-inventory' },
-          { label: 'Orders', link: '/orders' },
+          { label: 'Tableau de bord', link: '/dashboard' },
+          { label: 'Stock IT', link: '/stock-inventory' },
+          { label: 'Commandes', link: '/orders' },
           { label: 'Maintenance', link: '/maintenance' },
         ],
       };
@@ -221,58 +209,46 @@ export function ChatbotWidget() {
 
     if (includesAny(q, ['bonjour', 'salut', 'hello', 'hi'])) {
       return {
-        text: `Hi! I can help with stock, assignments, orders, and maintenance tickets.`,
+        text: `Bonjour ! Comment puis-je vous aider avec le stock, les affectations ou les commandes aujourd'hui ?`,
       };
     }
 
     if (includesAny(q, ['aide', 'help', 'menu', 'fonctionnalite', 'fonctionnalites', 'que peux-tu faire', 'quoi faire'])) {
       return {
         text:
-          'Here are the available modules in this site:\n' +
-          '- Assets IT (Excel import/export, QR scan, columns/views)\n' +
-          '- Assignments\n' +
-          '- Orders\n' +
-          '- Maintenance (tickets)\n' +
-          '- Administration (users, sites, categories, suppliers, departments)\n' +
-          '- Audit Logs\n' +
-          '- Vendor Portal\n' +
-          '- Reporting',
+          'Voici ce que je peux faire :\n' +
+          '- Analyser le Stock IT (imports, scans, seuils)\n' +
+          '- Suivre les Affectations\n' +
+          '- Gérer les Commandes (BC/BL)\n' +
+          '- Gérer la Maintenance (tickets)\n' +
+          '- Consulter le Reporting et l\'Audit',
         actions: [
-          { label: 'Assets IT', link: '/stock-inventory' },
-          { label: 'Assignments', link: '/assignments' },
-          { label: 'Orders', link: '/orders' },
+          { label: 'Stock IT', link: '/stock-inventory' },
+          { label: 'Affectations', link: '/assignments' },
+          { label: 'Commandes', link: '/orders' },
           { label: 'Maintenance', link: '/maintenance' },
-          { label: 'Administration', link: '/admin' },
-          { label: 'Audit Logs', link: '/audit-logs' },
-          { label: 'Vendor Portal', link: '/vendor-portal' },
           { label: 'Reporting', link: '/reporting' },
         ],
       };
     }
 
-    if (includesAny(q, ['combien', 'stats', 'kpi', 'etat', 'status'])) {
+    if (includesAny(q, ['combien', 'stats', 'kpi', 'etat', 'status', 'statistique', 'statistiques'])) {
       if (includesAny(q, ['asset', 'stock', 'inventaire', 'inventory'])) {
         return {
-          text: `Stock (assets): Available ${available} • Assigned ${assigned} • In repair ${inRepair} • Retired ${retired}.`,
-          actions: [{ label: 'Open Assets IT', link: '/stock-inventory' }],
+          text: `État du stock :\n• Disponible : ${available}\n• Affecté : ${assigned}\n• En réparation : ${inRepair}\n• Retiré : ${retired}.`,
+          actions: [{ label: 'Voir le Stock', link: '/stock-inventory' }],
         };
       }
       if (includesAny(q, ['ticket', 'maintenance'])) {
         return {
-          text: `Maintenance: ${openTickets} ticket(s) open / in progress.`,
-          actions: [{ label: 'Open Maintenance', link: '/maintenance' }],
+          text: `Maintenance : ${openTickets} ticket(s) en cours.`,
+          actions: [{ label: 'Voir la Maintenance', link: '/maintenance' }],
         };
       }
       if (includesAny(q, ['assignment', 'affect', 'affectation'])) {
         return {
-          text: `Assignments: ${activeAssignments} active assignment(s).`,
-          actions: [{ label: 'Open Assignments', link: '/assignments' }],
-        };
-      }
-      if (includesAny(q, ['order', 'achat', 'purchase'])) {
-        return {
-          text: 'Orders: open the Orders page to view and manage orders.',
-          actions: [{ label: 'Open Orders', link: '/orders' }],
+          text: `Affectations : ${activeAssignments} affectation(s) active(s).`,
+          actions: [{ label: 'Voir les Affectations', link: '/assignments' }],
         };
       }
     }
@@ -280,120 +256,39 @@ export function ChatbotWidget() {
     if (includesAny(q, ['achat', 'achats', 'commande', 'commandes', 'orders', 'order', 'purchase', 'procurement'])) {
       return {
         text:
-          'For purchasing: open “Orders”, then create and track your orders. You can attach documents like BC/BL.',
-        actions: [{ label: 'Go to Orders', link: '/orders' }],
+          'Pour les achats : ouvrez le module "Commandes" pour créer et suivre vos BC/BL.',
+        actions: [{ label: 'Aller aux Commandes', link: '/orders' }],
       };
     }
 
     if (includesAny(q, ['import', 'excel', 'xlsx', 'xls'])) {
       return {
-        text: 'To import Excel: go to “Assets IT” then click “Import Excel” (top right). The file must be .xlsx/.xls.',
-        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
+        text: 'Pour importer un Excel : allez dans "Stock IT" puis cliquez sur "Import Excel" en haut à droite.',
+        actions: [{ label: 'Aller au Stock', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['scan', 'qr', 'barcode', 'code barre', 'codebarre'])) {
       return {
-        text: 'To scan: go to “Assets IT” then click “Scan QR” (top right).',
-        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
-      };
-    }
-
-    if (includesAny(q, ['seuil', 'threshold', 'stock bas', 'low stock'])) {
-      return {
-        text: 'Low stock thresholds can be configured from “Assets IT” → “Configure thresholds” (in the low stock panel).',
-        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
-      };
-    }
-
-    if (includesAny(q, ['colonne', 'colonnes', 'vue', 'vues', 'view', 'views'])) {
-      return {
-        text: 'In “Assets IT”, you can customize columns and save views (configuration buttons at the top of the page).',
-        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
-      };
-    }
-
-    if (includesAny(q, ['export', 'telecharger', 'download'])) {
-      return {
-        text: 'To export stock: “Assets IT” → “Export Excel” button (top right).',
-        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
+        text: 'Pour scanner un asset : utilisez le bouton "Scan QR" dans le module Stock IT.',
+        actions: [{ label: 'Aller au Stock', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['nouvel asset', 'ajouter asset', 'add asset', 'new asset', 'asset'])) {
       return {
-        text: 'To add an asset: “Assets IT” → “Add New Asset” button (top right), then fill the form.',
-        actions: [{ label: 'Go to Assets IT', link: '/stock-inventory' }],
-      };
-    }
-
-    if (includesAny(q, ['assignment', 'affectation', 'assigner', 'assign'])) {
-      return {
-        text: 'To create an assignment: “Assignments” → “New assignment”, then select the asset/user/department/site.',
-        actions: [{ label: 'Go to Assignments', link: '/assignments' }],
-      };
-    }
-
-    if (includesAny(q, ['maintenance', 'ticket', 'repair', 'reparation'])) {
-      return {
-        text: 'To open a ticket: “Maintenance” → “New ticket”. Business rule: when a ticket is Open/InProgress, the asset automatically switches to “InRepair”.',
-        actions: [{ label: 'Go to Maintenance', link: '/maintenance' }],
-      };
-    }
-
-    if (includesAny(q, ['pr', 'purchase request', 'demande achat'])) {
-      return {
-        text: 'To create a PR: “Orders” → “Purchase Requests” tab → “New PR”.',
-        actions: [{ label: 'Go to Orders', link: '/orders' }],
-      };
-    }
-
-    if (includesAny(q, ['po', 'purchase order', 'bon de commande'])) {
-      return {
-        text: 'To create a PO: “Orders” → “Purchase Orders” tab → “New PO”.',
-        actions: [{ label: 'Go to Orders', link: '/orders' }],
-      };
-    }
-
-    if (includesAny(q, ['admin', 'utilisateur', 'users', 'sites', 'categories', 'suppliers', 'departments'])) {
-      return {
-        text: 'Administration: manage Users, Sites, Categories, Suppliers, and Departments from the “Administration” page.',
-        actions: [{ label: 'Go to Administration', link: '/admin' }],
-      };
-    }
-
-    if (includesAny(q, ['audit', 'logs', 'journal'])) {
-      return {
-        text: 'System actions are visible in “Audit Logs”.',
-        actions: [{ label: 'Open Audit Logs', link: '/audit-logs' }],
+        text: 'Pour ajouter un asset : Stock IT → bouton "Add New Asset".',
+        actions: [{ label: 'Aller au Stock', link: '/stock-inventory' }],
       };
     }
 
     if (includesAny(q, ['report', 'reporting', 'rapport'])) {
       return {
-        text: 'Reports and KPIs are available in “Reporting”.',
-        actions: [{ label: 'Open Reporting', link: '/reporting' }],
+        text: 'Les rapports et indicateurs clés (KPI) sont disponibles dans le module "Reporting".',
+        actions: [{ label: 'Ouvrir Reporting', link: '/reporting' }],
       };
     }
 
-    if (includesAny(q, ['vendor', 'fournisseur', 'portal'])) {
-      return {
-        text: 'The supplier directory / portal is in “Vendor Portal”.',
-        actions: [{ label: 'Open Vendor Portal', link: '/vendor-portal' }],
-      };
-    }
-
-    if (includesAny(q, ['rechercher', 'search', 'trouver'])) {
-      return {
-        text: 'You can search quickly: Ctrl+K (search palette), or use the search bar in Assets IT.',
-        actions: [
-          { label: 'Open Assets IT', link: '/stock-inventory' },
-          { label: 'Open Dashboard', link: '/dashboard' },
-        ],
-      };
-    }
-
-    // Unknown: let the LLM try, still constrained to site capabilities.
     return null;
   };
 
@@ -433,28 +328,27 @@ export function ChatbotWidget() {
       try {
         const history = buildHistoryForLlm();
         const message =
-          'You are a site assistant for an internal web application. Only answer questions about the site features and navigation (Stock/Assets, Assignments, Orders PR/PO, Maintenance, Admin, Audit Logs, Vendor Portal, Reporting). If the question is unrelated, reply that you can only help with this site.\n\nUser question: ' +
+          'You are a site assistant for an internal web application. Only answer questions about the site features and navigation. Be concise and professional.\n\nUser question: ' +
           trimmed;
         const res = await chatAssistant({ message, history });
         const elapsed = Date.now() - startedAt;
         const remaining = delayMs - elapsed;
         if (remaining > 0) await sleep(remaining);
         replaceTypingWithAssistant(typingId, {
-          text: String(res?.text ?? '').trim() || 'I can only help with the site features.',
+          text: String(res?.text ?? '').trim() || 'Je peux vous aider avec les fonctionnalités du site.',
           actions: Array.isArray(res?.actions) ? res.actions : undefined,
         });
       } catch (err) {
-        console.warn('Chatbot LLM call failed:', err);
         const elapsed = Date.now() - startedAt;
         const remaining = delayMs - elapsed;
         if (remaining > 0) await sleep(remaining);
         replaceTypingWithAssistant(typingId, {
           text:
-            'I can’t answer right now (LLM unavailable). I can still help with the site modules; for general questions, start Ollama and try again.',
+            'Je ne peux pas répondre pour le moment (IA indisponible), mais je peux vous guider vers les modules principaux.',
           actions: [
-            { label: 'Help menu', link: '/dashboard' },
-            { label: 'Orders', link: '/orders' },
-            { label: 'Assets IT', link: '/stock-inventory' },
+            { label: 'Stock IT', link: '/stock-inventory' },
+            { label: 'Commandes', link: '/orders' },
+            { label: 'Maintenance', link: '/maintenance' },
           ],
         });
       }
@@ -469,125 +363,200 @@ export function ChatbotWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50" ref={panelRef}>
+    <div className="fixed bottom-6 right-6 z-[90]" ref={panelRef}>
       {/* Toggle button */}
-      {!isOpen && (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="p-0 bg-transparent shadow-none hover:opacity-90 transition-opacity flex items-center justify-center"
-          aria-label="Open assistant"
-        >
+      <motion.button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "relative group flex items-center justify-center transition-all duration-500",
+          isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
+        )}
+        whileHover={{ scale: 1.1, y: -5 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <div className="absolute -inset-4 bg-gradient-to-r from-primary/40 to-cyan-400/30 rounded-full blur-2xl opacity-0 group-hover:opacity-60 transition-opacity duration-500" />
+        <div className="relative h-16 w-16 rounded-full p-0.5 bg-gradient-to-br from-white/20 via-primary/20 to-cyan-400/20 shadow-2xl backdrop-blur-md border border-white/30 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-white/10" />
           <img
             src={assistantIconUrl}
             alt="Assistant"
-            className="h-14 w-14 select-none"
+            className="h-full w-full object-cover select-none relative z-10"
             draggable={false}
           />
-        </button>
-      )}
+        </div>
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: [0, 1.2, 1] }}
+          className="absolute -top-1 -right-1 h-5 w-5 bg-blue-600 rounded-full border-2 border-white flex items-center justify-center shadow-lg"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-white" />
+        </motion.div>
+      </motion.button>
 
       {/* Panel */}
-      {isOpen && (
-        <div className="w-[380px] max-w-[calc(100vw-3rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {/* Header */}
-          <div className="p-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-bold">
-                  A
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20, scale: 0.9, transformOrigin: 'bottom right' }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="panel-frame absolute bottom-0 right-0 w-[420px] max-w-[calc(100vw-3rem)] bg-card/95 dark:bg-card/80 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] rounded-3xl z-50 overflow-hidden border border-border/60"
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-border/50 bg-gradient-to-br from-primary/20 via-cyan-400/10 to-transparent relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.15),transparent_70%)] pointer-events-none" />
+              
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-cyan-500 p-0.5 shadow-lg group">
+                      <div className="h-full w-full rounded-[14px] bg-card flex items-center justify-center overflow-hidden">
+                        <img src={assistantIconUrl} alt="AI" className="h-full w-full object-cover" />
+                      </div>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-emerald-500 rounded-full border-2 border-card shadow-sm animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg tracking-tight text-foreground flex items-center gap-2">
+                      Assistant IA
+                      <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] uppercase tracking-widest font-black border border-primary/20">Pro</span>
+                    </h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="flex gap-0.5">
+                        <span className="w-1 h-1 rounded-full bg-primary/40" />
+                        <span className="w-1 h-1 rounded-full bg-primary/40" />
+                        <span className="w-1 h-1 rounded-full bg-primary/40" />
+                      </div>
+                      <span className="text-[11px] font-medium text-muted-foreground/80 uppercase tracking-wide">Support Intelligent</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-bold leading-tight">Assistant PFE</div>
-                  <div className="text-xs text-white/80">Stock • Assignments • Orders • Maintenance</div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
-                aria-label="Close assistant"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div ref={listRef} className="max-h-[420px] overflow-y-auto p-4 space-y-3 bg-gray-50/60 dark:bg-gray-950/30">
-            {messages.map((m) => (
-              <div key={m.id} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div
-                  className={cn(
-                    'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm border',
-                    m.role === 'user'
-                      ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground border-transparent'
-                      : 'bg-blue-50 dark:bg-blue-950/30 text-gray-900 dark:text-gray-100 border-blue-200 dark:border-blue-900/40',
-                  )}
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-xl transition-all text-muted-foreground hover:text-foreground hover:rotate-90 duration-300"
                 >
-                  <div className="whitespace-pre-wrap">{m.text}</div>
-                  {m.role === 'assistant' && m.actions && m.actions.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {m.actions.map((a) => (
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div ref={listRef} className="h-[450px] overflow-y-auto p-5 space-y-5 sidebar-scroll bg-[radial-gradient(circle_at_50%_50%,rgba(34,211,238,0.03),transparent_70%)]">
+              {messages.map((m) => (
+                <motion.div 
+                  initial={{ opacity: 0, x: m.role === 'user' ? 10 : -10, y: 5 }}
+                  animate={{ opacity: 1, x: 0, y: 0 }}
+                  key={m.id} 
+                  className={cn('flex items-end gap-2.5', m.role === 'user' ? 'flex-row-reverse' : 'flex-row')}
+                >
+                  <div className={cn(
+                    "flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center border shadow-sm",
+                    m.role === 'user' ? "bg-card border-border text-primary" : "bg-gradient-to-br from-primary to-cyan-500 border-transparent text-white"
+                  )}>
+                    {m.role === 'user' ? <UserIcon className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                  </div>
+
+                  <div className={cn(
+                    'max-w-[80%] rounded-2xl px-4 py-3 text-[13.5px] leading-relaxed shadow-sm border relative group/msg transition-all duration-300',
+                    m.role === 'user'
+                      ? 'bg-gradient-to-br from-blue-600 to-primary text-white border-transparent rounded-br-none'
+                      : 'bg-card/50 dark:bg-muted/30 text-foreground border-border/60 rounded-bl-none backdrop-blur-md',
+                  )}>
+                    <div className="whitespace-pre-wrap font-medium">{m.text}</div>
+                    
+                    {m.role === 'assistant' && m.actions && m.actions.length > 0 && (
+                      <div className="mt-3.5 flex flex-wrap gap-2 pt-3.5 border-t border-border/40">
+                        {m.actions.map((a) => (
+                          <button
+                            key={a.link + a.label}
+                            type="button"
+                            onClick={() => navigate(a.link)}
+                            className="chip-industrial px-3 py-1.5 rounded-lg text-xs font-bold text-primary hover:text-cyan-600 transition-all flex items-center gap-1.5 group/btn"
+                          >
+                            {a.label}
+                            <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className={cn(
+                      "absolute bottom-[-18px] text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 opacity-0 group-hover/msg:opacity-100 transition-opacity",
+                      m.role === 'user' ? "right-0" : "left-0"
+                    )}>
+                      {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+
+              {/* Suggested questions */}
+              <AnimatePresence>
+                {suggestionsVisible && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="pt-4"
+                  >
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Suggestions</span>
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedQuestions.map((q) => (
                         <button
-                          key={a.link + a.label}
+                          key={q}
                           type="button"
-                          onClick={() => navigate(a.link)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          onClick={() => {
+                            setSuggestionsVisible(false);
+                            send(q);
+                          }}
+                          className="px-4 py-2 rounded-xl text-[11px] font-bold border border-border/60 bg-card hover:bg-primary/5 hover:border-primary/40 hover:text-primary transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
                         >
-                          {a.label}
+                          {q}
                         </button>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Suggested questions */}
-            {suggestionsVisible && (
-              <div className="pt-1">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Suggestions</div>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedQuestions.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => {
-                        setSuggestionsVisible(false);
-                        send(q);
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Input */}
-          <form onSubmit={onSubmit} className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-            <div className="flex items-center gap-2">
-              <input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onFocus={() => setSuggestionsVisible(true)}
-                placeholder="Type your question…"
-                className="flex-1 h-10 px-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-              />
-              <button
-                type="submit"
-                className="h-10 w-10 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground flex items-center justify-center hover:shadow-lg transition-shadow"
-                aria-label="Send"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </form>
-        </div>
-      )}
+
+            {/* Input */}
+            <form onSubmit={onSubmit} className="p-4 border-t border-border/50 bg-card/50 dark:bg-muted/10">
+              <div className="relative group/input">
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-cyan-400/20 rounded-2xl blur opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-500" />
+                <div className="relative flex items-center gap-2 bg-card border border-border/80 rounded-2xl p-1.5 shadow-sm group-focus-within/input:border-primary/50 transition-all">
+                  <div className="pl-2.5 text-muted-foreground/50">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <input
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onFocus={() => setSuggestionsVisible(true)}
+                    placeholder="Posez votre question..."
+                    className="flex-1 bg-transparent border-none text-foreground text-[13px] font-medium outline-none placeholder:text-muted-foreground/40 placeholder:font-normal h-9"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!draft.trim()}
+                    className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-cyan-600 text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:scale-105 disabled:opacity-30 disabled:grayscale disabled:scale-100 transition-all duration-300"
+                    aria-label="Envoyer"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

@@ -125,6 +125,28 @@ try {
     & $venvPy -m pip install -r requirements-sqlserver.txt
   }
 
+  # FastAPI UploadFile/FormData requires python-multipart.
+  $prevEapM = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  & $venvPy -c "import multipart" *> $null
+  $ErrorActionPreference = $prevEapM
+
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host 'Installing missing backend dependency: python-multipart' -ForegroundColor Cyan
+    & $venvPy -m pip install -r requirements-sqlserver.txt
+  }
+
+  # SQL Server driver for Python.
+  $prevEapOdbc = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  & $venvPy -c "import pyodbc" *> $null
+  $ErrorActionPreference = $prevEapOdbc
+
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host 'Installing missing backend dependency: pyodbc' -ForegroundColor Cyan
+    & $venvPy -m pip install -r requirements-sqlserver.txt
+  }
+
   function Test-BackendHealth([int] $port) {
     $prevEapH = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'

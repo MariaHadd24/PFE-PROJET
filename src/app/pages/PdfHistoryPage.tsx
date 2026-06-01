@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Download, FileText, RefreshCw } from 'lucide-react';
-import { API_BASE_URL, apiGet } from '../lib/api';
+import { Download, FileText, RefreshCw, Trash2 } from 'lucide-react';
+import { API_BASE_URL, apiDelete, apiGet } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 type PdfItem = {
   file: string;
@@ -20,6 +22,10 @@ function formatEpochSeconds(seconds?: string): string {
 }
 
 export default function PdfHistoryPage() {
+  const { user } = useAuth();
+  const role = user?.role ?? 'Reader';
+  const isAdmin = role === 'Admin';
+
   const [items, setItems] = useState<PdfItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -50,6 +56,20 @@ export default function PdfHistoryPage() {
     return `${API_BASE_URL}/pdfs/${encodeURIComponent(filename)}`;
   };
 
+  const handleDelete = async (filename: string) => {
+    if (!isAdmin) return;
+    const ok = window.confirm(`Supprimer définitivement le PDF “${filename}” ?`);
+    if (!ok) return;
+
+    try {
+      await apiDelete<{ ok: boolean }>(`/pdfs/${encodeURIComponent(filename)}`);
+      setItems((prev) => prev.filter((x) => x.file !== filename));
+      toast.success('PDF supprimé');
+    } catch (e: any) {
+      toast.error('Suppression impossible', { description: String(e?.message ?? e ?? 'Unknown error') });
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
       <div className="flex items-center justify-between gap-3 mb-6">
@@ -71,7 +91,7 @@ export default function PdfHistoryPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tous les documents générés</CardTitle>
+          <CardTitle>Tous les documents</CardTitle>
         </CardHeader>
         <CardContent>
           {filtered.length > 0 ? (
@@ -99,6 +119,17 @@ export default function PdfHistoryPage() {
                   >
                     <Download className="h-5 w-5" />
                   </a>
+
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(pdf.file)}
+                      className="p-2 rounded-md hover:bg-muted text-destructive"
+                      title="Supprimer le PDF"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

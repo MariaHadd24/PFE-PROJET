@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { AlertTriangle, ChevronDown, ChevronUp, Columns3, Download, Filter, Plus, Save, Search, Trash2, Upload, X } from 'lucide-react';
 import type { AssetStatus, StockMovement } from '../types';
@@ -158,7 +158,7 @@ async function exportStockToExcel(rows: StockRow[], typeHeaderLabel: string = 'T
     'Magasin': r.store,
     'Armoire': r.cabinet,
     'Rack': r.rack,
-    'Étage': r.level,
+    'Ã‰tage': r.level,
     'Stock IN': r.stockIn,
     'Date IN': r.dateIn,
     'Pilote': r.pilote,
@@ -256,7 +256,7 @@ function normalizeHeaderKey(key: unknown) {
   const raw = String(key ?? '').trim().toLowerCase();
   // Make Excel header matching resilient to punctuation/formatting differences
   // Examples: "BCI/BCE" -> "bci bce", "BCI-WS" -> "bci ws", "S/N" -> "s n"
-  // Also removes diacritics: "étage" -> "etage".
+  // Also removes diacritics: "Ã©tage" -> "etage".
   const noDiacritics = raw.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
   return noDiacritics.replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -675,7 +675,7 @@ async function importStockInventoryFromExcel() {
         const store = pickString(r, ['magasin', 'store', 'store location', 'storage']);
         const cabinet = pickString(r, ['armoire', 'cabinet']);
         const rack = pickString(r, ['rack']);
-        const level = pickString(r, ['etage', 'étage', 'level', 'floor']);
+        const level = pickString(r, ['etage', 'Ã©tage', 'level', 'floor']);
 
         const hasAnyData =
           Boolean(assetTag) ||
@@ -878,7 +878,7 @@ async function importStockInventoryFromArrayBuffer(arrayBuffer: ArrayBuffer) {
         const store = pickString(r, ['magasin', 'store', 'store location', 'storage']);
         const cabinet = pickString(r, ['armoire', 'cabinet']);
         const rack = pickString(r, ['rack']);
-        const level = pickString(r, ['etage', 'étage', 'level', 'floor']);
+        const level = pickString(r, ['etage', 'Ã©tage', 'level', 'floor']);
 
         const hasAnyData =
           Boolean(assetTag) ||
@@ -1069,7 +1069,7 @@ export function StockInventoryPage() {
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
   const { addNotification } = useNotifications();
-  const { assets, categories, sites, assignments, stockMovements, addAsset, refreshAll } = useData();
+  const { assets, categories, sites, assignments, stockMovements, addAsset, refreshByScope } = useData();
   const { user } = useAuth();
   const role = user?.role ?? 'Reader';
   const canManageInventory = canPerformAction(role, 'manage_inventory');
@@ -1438,13 +1438,11 @@ export function StockInventoryPage() {
       .concat(OBSOLETE_TAB);
   }, [assetsList, excelSections]);
 
-  const defaultCategory = useMemo(() => categoryTabs[0] ?? '', [categoryTabs]);
-
   const appliedNavFilterKeyRef = useRef<string | null>(null);
   useEffect(() => {
     const rawState = (location as any)?.state as any;
     const filter = rawState?.stockInventoryFilter as
-      | { activeCategory?: unknown; searchTerm?: unknown }
+      | { activeCategory?: unknown; searchTerm?: unknown; filterStatus?: unknown }
       | undefined;
     if (!filter) return;
 
@@ -1459,8 +1457,14 @@ export function StockInventoryPage() {
 
     const requestedCategory = String(filter.activeCategory ?? '').trim();
     const requestedSearch = String(filter.searchTerm ?? '').trim();
+    const requestedStatus = String(filter.filterStatus ?? '').trim();
 
     setSearchTerm(requestedSearch);
+    setFilterStatus(
+      requestedStatus === 'Available' || requestedStatus === 'Assigned' || requestedStatus === 'InRepair' || requestedStatus === 'Retired'
+        ? requestedStatus
+        : ''
+    );
 
     if (requestedCategory) {
       const normalizedRequested = normalizeCategoryTabLabel(requestedCategory);
@@ -1488,19 +1492,16 @@ export function StockInventoryPage() {
     if (normalizedTab && categoryTabs.includes(normalizedTab)) {
       setActiveCategory(normalizedTab);
     } else {
-      setActiveCategory(defaultCategory);
+      setActiveCategory('');
     }
-  }, [activeCategory, categoryTabs, defaultCategory]);
+  }, [activeCategory, categoryTabs]);
 
    useEffect(() => {
     const navState = location.state as any;
     const navFilter = navState?.stockInventoryFilter;
 
-    // No "All Stock" view: default to the first category tab.
     if (activeCategory || navFilter) return; // <-- ADD || navFilter HERE
-    if (!defaultCategory) return;
-    setActiveCategory(defaultCategory);
-  }, [activeCategory, defaultCategory, location.state]);
+  }, [activeCategory, location.state]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1537,7 +1538,7 @@ export function StockInventoryPage() {
             const existingCount = Array.isArray(existing) ? existing.length : 0;
             if (existingCount < deduped.assets.length) {
               await upsertImportedAssetsToBackend(deduped.assets);
-              await refreshAll();
+              await refreshByScope('Asset');
             }
           } catch {
             // ignore: keep Stock Inventory UI usable even if backend sync fails
@@ -1702,7 +1703,7 @@ export function StockInventoryPage() {
     try {
       await patchAsset(id, { status: 'Retired' } as any);
       applyAssetStatus(id, 'Retired');
-      await refreshAll();
+      await refreshByScope('Asset');
       toast.success('Marked as obsolete', { description: 'Status set to Retired' });
     } catch (e: any) {
       toast.error('Unable to update asset', { description: String(e?.message ?? 'Network error') });
@@ -1736,7 +1737,7 @@ export function StockInventoryPage() {
       }
     }
 
-    await refreshAll();
+    await refreshByScope('Asset');
     toast.success('Transfer complete', { description: `${transferred} asset(s) marked as Retired` });
   };
 
@@ -2036,6 +2037,7 @@ export function StockInventoryPage() {
     setFilterSupplier('');
     setValueMin('');
     setValueMax('');
+    setActiveCategory('');
   };
 
   const toggleSort = (key: StockColumnKey) => {
@@ -2115,7 +2117,7 @@ export function StockInventoryPage() {
     setActiveViewId(viewId);
     const view = views.find((v) => v.id === viewId);
     if (!view) return;
-    setActiveCategory(view.state.activeCategory || defaultCategory);
+    setActiveCategory(view.state.activeCategory ?? '');
     setSearchTerm(view.state.searchTerm);
     setFilterStatus(view.state.filterStatus);
     setFilterSite(view.state.filterSite);
@@ -2185,7 +2187,7 @@ export function StockInventoryPage() {
               }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-foreground hover:bg-muted/30 transition-all font-medium"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               Export Excel
             </button>
 
@@ -2212,7 +2214,7 @@ export function StockInventoryPage() {
 
                         // Switch back to DB-backed view
                         setExcelSections([]);
-                        await refreshAll();
+                        await refreshByScope('Asset');
 
                         if (failed === 0) {
                           toast.success('Import completed', { description: `${created} created, ${updated} updated, ${skipped} skipped` });
@@ -2240,7 +2242,7 @@ export function StockInventoryPage() {
                 onClick={() => fileInputRef.current?.click()}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 font-medium"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="w-3.5 h-3.5" />
                 Import Excel
               </button>
             </>
@@ -2289,22 +2291,22 @@ export function StockInventoryPage() {
 
       {/* Category Tabs */}
       <motion.div
-        className="bg-primary/5 dark:bg-primary/10 rounded-2xl shadow-sm border border-primary/20"
+        className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl"
         variants={shouldReduceMotion ? undefined : pageItemVariants}
       >
         <div className="px-6 pt-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <div className="flex flex-wrap gap-x-2 gap-y-2">
               {categoryTabs
                 .filter((name) => name !== OBSOLETE_TAB)
                 .map((name) => (
                   <button
                     key={name}
                     onClick={() => setActiveCategory(name)}
-                    className={`pb-3 whitespace-nowrap border-b-2 font-medium text-sm transition-colors ${
+                    className={`px-4 py-2 rounded-xl whitespace-nowrap border border-transparent font-black text-[10px] uppercase tracking-widest transition-colors ${
                       activeCategory === name
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                        ? 'bg-card text-primary border-border shadow-sm'
+                        : 'text-muted-foreground/70 hover:text-foreground hover:bg-muted/30 hover:border-border/60'
                     }`}
                   >
                     {name}
@@ -2317,13 +2319,13 @@ export function StockInventoryPage() {
                 className={`rounded-xl border px-3 pt-2 ${
                   activeCategory === OBSOLETE_TAB
                     ? 'border-destructive/30 bg-destructive/10'
-                    : 'border-primary/20 bg-card/50'
+                    : 'border-border/60 bg-card/50'
                 }`}
               >
                 <button
                   key={OBSOLETE_TAB}
                   onClick={() => setActiveCategory(OBSOLETE_TAB)}
-                  className={`pb-2 whitespace-nowrap border-b-2 font-semibold text-sm transition-colors ${
+                  className={`pb-2 whitespace-nowrap border-b-2 font-black text-[10px] uppercase tracking-widest transition-colors ${
                     activeCategory === OBSOLETE_TAB
                       ? 'border-destructive text-destructive'
                       : 'border-transparent text-foreground/80 hover:text-foreground hover:border-border'
@@ -2356,8 +2358,8 @@ export function StockInventoryPage() {
 
         {/* Filters */}
         <div className="px-6 pb-5">
-          <div className="rounded-xl border border-primary/20 bg-card/50 p-3 mb-4">
-            <div className="flex flex-col gap-3">
+          <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 mb-4 shadow-sm">
+            <div className="flex flex-col gap-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {canUseSavedViews && (
@@ -2390,7 +2392,7 @@ export function StockInventoryPage() {
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="outline" size="sm">
-                            <Save className="w-4 h-4" />
+                            <Save className="w-3.5 h-3.5" />
                             Save view
                           </Button>
                         </DialogTrigger>
@@ -2416,7 +2418,7 @@ export function StockInventoryPage() {
 
                       {activeViewId && (
                         <Button variant="ghost" size="sm" onClick={() => deleteView(activeViewId)}>
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                           Delete view
                         </Button>
                       )}
@@ -2429,7 +2431,7 @@ export function StockInventoryPage() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm">
-                  <Columns3 className="w-4 h-4" />
+                  <Columns3 className="w-3.5 h-3.5" />
                   Columns
                 </Button>
               </PopoverTrigger>
@@ -2488,7 +2490,7 @@ export function StockInventoryPage() {
                               });
                             }}
                           >
-                            <ChevronUp className="w-4 h-4" />
+                            <ChevronUp className="w-3.5 h-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -2506,7 +2508,7 @@ export function StockInventoryPage() {
                               });
                             }}
                           >
-                            <ChevronDown className="w-4 h-4" />
+                            <ChevronDown className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       </div>
@@ -2518,7 +2520,7 @@ export function StockInventoryPage() {
 
             {canManageInventory && (
               <Button variant="outline" size="sm" onClick={() => setIsThresholdsOpen(true)}>
-                <AlertTriangle className="w-4 h-4" />
+                <AlertTriangle className="w-3.5 h-3.5" />
                 Thresholds
               </Button>
             )}
@@ -2526,7 +2528,7 @@ export function StockInventoryPage() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4" />
+                  <Filter className="w-3.5 h-3.5" />
                   Advanced filters
                 </Button>
               </PopoverTrigger>
@@ -2552,7 +2554,7 @@ export function StockInventoryPage() {
                   </div>
                   <div className="flex items-center justify-between pt-1">
                     <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
                       Clear
                     </Button>
                     <div className="text-xs text-muted-foreground">Applies instantly</div>
@@ -2562,7 +2564,7 @@ export function StockInventoryPage() {
             </Popover>
 
             <Button variant="ghost" size="sm" onClick={clearFilters}>
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
               Clear
             </Button>
 
@@ -2573,25 +2575,25 @@ export function StockInventoryPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Search</label>
+              <label className="block text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] mb-2.5 ml-1">Search</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by name, SN, MAC, site, supplier…"
-                  className="h-10 pl-10 bg-card"
+                  className="h-10 pl-10 bg-card border-border/70 rounded-xl"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Status</label>
+              <label className="block text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] mb-2.5 ml-1">Status</label>
               <Select
                 value={filterStatus || '__all__'}
                 onValueChange={(v) => setFilterStatus(v === '__all__' ? '' : (v as AssetStatus))}
               >
-                <SelectTrigger className="h-10 bg-card">
+                <SelectTrigger className="h-10 bg-card border-border/70 rounded-xl">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2660,7 +2662,7 @@ export function StockInventoryPage() {
 
       {/* Table */}
       <motion.div
-        className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"
+        className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl"
         variants={shouldReduceMotion ? undefined : pageItemVariants}
       >
         {selectedRowIds.size > 0 && (
@@ -2670,22 +2672,22 @@ export function StockInventoryPage() {
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={exportSelected}>
-                <Download className="w-4 h-4" />
+                <Download className="w-3.5 h-3.5" />
                 Export selected
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setSelectedRowIds(new Set())}>
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
                 Clear
               </Button>
             </div>
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto table-scrollbar pb-3">
           <table className="min-w-[1200px] w-full premium-table">
-            <thead className="bg-muted/40 border-b border-border">
-              <tr>
-                <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+            <thead>
+              <tr className="bg-muted/20">
+                <th className="px-6 py-3 whitespace-nowrap text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50">
                   <Checkbox
                     checked={allPageSelected ? true : somePageSelected ? 'indeterminate' : false}
                     onCheckedChange={(checked) => setAllOnPage(checked === true)}
@@ -2696,7 +2698,7 @@ export function StockInventoryPage() {
                 {displayedColumns.map((col) => (
                   <th
                     key={col.key}
-                    className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider"
+                    className="px-6 py-3 whitespace-nowrap text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50"
                   >
                     <button
                       onClick={() => toggleSort(col.key)}
@@ -2706,35 +2708,35 @@ export function StockInventoryPage() {
                       {col.label}
                       {sort.key === col.key && (
                         sort.dir === 'asc' ? (
-                          <ChevronUp className="w-4 h-4" />
+                          <ChevronUp className="w-3.5 h-3.5" />
                         ) : (
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronDown className="w-3.5 h-3.5" />
                         )
                       )}
                     </button>
                   </th>
                 ))}
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 whitespace-nowrap text-right text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="divide-y divide-border/40">
               {isLoading &&
                 Array.from({ length: Math.min(8, pageSize) }).map((_, idx) => (
                   <tr key={`sk-${idx}`}>
-                    <td className="px-4 py-4"><Skeleton className="h-4 w-4" /></td>
+                    <td className="px-8 py-5"><Skeleton className="h-4 w-4" /></td>
                     {displayedColumns.map((c) => (
-                      <td key={c.key} className="px-6 py-4">
+                      <td key={c.key} className="px-8 py-5">
                         <Skeleton className="h-4 w-full" />
                       </td>
                     ))}
-                    <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-16 ml-auto" /></td>
+                    <td className="px-8 py-5 text-right"><Skeleton className="h-8 w-16 ml-auto" /></td>
                   </tr>
                 ))}
 
               {!isLoading &&
                 pageRows.map((r) => (
-                  <tr key={r.rowId} className="transition-colors">
-                    <td className="px-4 py-4">
+                  <tr key={r.rowId} className="group hover:bg-primary/5 transition-all duration-300">
+                    <td className="px-8 py-5 whitespace-nowrap">
                       <Checkbox
                         checked={selectedRowIds.has(r.rowId)}
                         onCheckedChange={(checked) => toggleRowSelected(r.rowId, checked === true)}
@@ -2744,37 +2746,50 @@ export function StockInventoryPage() {
                     {displayedColumns.map((col) => {
                       if (col.key === 'status') {
                         return (
-                          <td key={col.key} className="px-6 py-4 text-sm whitespace-nowrap">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[r.status]}`}>
+                          <td key={col.key} className="px-8 py-5 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.15em] border shadow-sm transition-transform group-hover:scale-105 ${statusStyles[r.status]}`}>
                               {r.status}
                             </span>
                           </td>
                         );
                       }
 
-                      const value = (r as any)[col.key];
+                      const value = (r as any)[col.key] || '—';
                       const isTight = col.key !== 'comment';
+                      
+                      let cellContent = <span className="text-[12px] font-medium text-foreground/80">{value}</span>;
+                      
+                      if (col.key === 'assetId') {
+                        cellContent = <span className="text-[13px] font-black text-primary/80 group-hover:text-primary transition-colors">{value}</span>;
+                      } else if (col.key === 'type' || col.key === 'model') {
+                        cellContent = <span className="text-[13px] font-bold text-foreground leading-none">{value}</span>;
+                      } else if (col.key === 'sn') {
+                        cellContent = <span className="text-[12px] font-bold text-muted-foreground tracking-tight">{value}</span>;
+                      } else if (col.key === 'department') {
+                         cellContent = <span className="text-[12px] font-bold text-foreground/70">{value}</span>;
+                      }
+
                       return (
                         <td
                           key={col.key}
-                          className={`px-6 py-4 text-sm text-foreground ${isTight ? 'whitespace-nowrap' : ''}`}
+                          className={`px-8 py-5 ${isTight ? 'whitespace-nowrap' : ''}`}
                         >
-                          {value}
+                          {cellContent}
                         </td>
                       );
                     })}
-                    <td className="px-6 py-4 text-sm text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-2">
+                    <td className="px-8 py-5 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center justify-end gap-3 w-full border-t-0 border-b-0 ">
                         <Link
                           to={r.detailsLink}
-                          className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted/30 text-foreground font-medium"
+                          className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:text-cyan-600 transition-colors"
                         >
                           View
                         </Link>
                         {canManageInventory && r.status !== 'Retired' && (
                           <button
                             onClick={() => void markObsolete(String(r.rowId))}
-                            className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted/30 text-foreground font-medium"
+                            className="text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600"
                             title="Mark as obsolete (Retired)"
                           >
                             Mark obsolete
@@ -2792,7 +2807,7 @@ export function StockInventoryPage() {
                     <div className="text-sm text-muted-foreground mt-1">Try adjusting filters or clearing them.</div>
                     <div className="mt-4">
                       <Button variant="outline" onClick={clearFilters}>
-                        <X className="w-4 h-4" />
+                        <X className="w-3.5 h-3.5" />
                         Clear filters
                       </Button>
                     </div>
@@ -2903,3 +2918,11 @@ export function StockInventoryPage() {
     </motion.div>
   );
 }
+
+
+
+
+
+
+
+

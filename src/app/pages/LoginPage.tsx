@@ -7,15 +7,6 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 const REMEMBERED_EMAIL_KEY = 'leoni.rememberedEmail';
 
-const DEMO_ACCOUNTS = [
-  { role: 'Administrateur IT', email: 'admin@leoni.example' },
-  { role: 'Technicien', email: 'tech@leoni.example' },
-  { role: 'Manager', email: 'manager@leoni.example' },
-  { role: 'Lecteur', email: 'reader@leoni.example' },
-] as const;
-
-const DEMO_PASSWORD = '123456';
-
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -79,56 +70,61 @@ export function LoginPage() {
   };
 
   return (
-    <div className="h-dvh bg-gradient-to-br from-[#0A1929] via-[#1B4F91] to-[#0F2744] flex items-center justify-center p-2 sm:p-3 relative overflow-hidden">
-      {/* Animated Background Elements */}
+    <div className="relative flex min-h-dvh items-center justify-center overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 px-2 py-4 sm:px-4 sm:py-6">
+      {/* Background layers */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Aurora layer */}
-        <div className="absolute inset-0 opacity-60 bg-gradient-to-r from-[#1B4F91]/30 via-purple-500/20 to-cyan-500/20 animate-gradient" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(59,130,246,0.18),transparent_30%),radial-gradient(circle_at_50%_85%,rgba(96,165,250,0.10),transparent_30%)] animate-gradient opacity-90" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.04)_0%,transparent_30%,rgba(255,255,255,0.03)_70%,transparent_100%)] opacity-60" />
 
-        {/* Floating orbs */}
-        <div className="absolute top-16 left-16 w-96 h-96 bg-blue-500/18 rounded-full blur-3xl animate-float-slower" />
-        <div className="absolute bottom-16 right-16 w-80 h-80 bg-purple-500/18 rounded-full blur-3xl animate-float-slow" />
-        <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-cyan-500/12 rounded-full blur-3xl animate-float-slower" style={{ animationDelay: '0.8s' }} />
-        
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-            transform: 'perspective(500px) rotateX(60deg)',
-            transformOrigin: 'center center'
-          }}></div>
+        <div className="absolute -top-24 -left-20 h-[28rem] w-[28rem] rounded-full bg-cyan-500/18 blur-3xl animate-float-slower" />
+        <div className="absolute -bottom-28 -right-16 h-[24rem] w-[24rem] rounded-full bg-blue-500/18 blur-3xl animate-float-slow" />
+        <div className="absolute top-1/3 right-[-6rem] h-72 w-72 rounded-full bg-indigo-500/12 blur-3xl" style={{ animationDelay: '0.8s' }} />
+
+        <div className="absolute inset-0 opacity-[0.09]">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(148, 163, 184, 0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.28) 1px, transparent 1px)',
+              backgroundSize: '72px 72px',
+              transform: 'perspective(900px) rotateX(66deg) rotateZ(45deg)',
+              transformOrigin: 'center center',
+            }}
+          />
         </div>
-        
-        {/* Floating particles */}
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
-        <div className="absolute top-3/4 right-1/3 w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-        <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/8 via-white/0 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/20 via-black/0 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0,transparent_68%,rgba(8,15,30,0.22)_100%)]" />
+
+        <div className="absolute top-1/4 left-[18%] h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_18px_rgba(103,232,249,0.75)] animate-pulse" style={{ animationDelay: '0s' }} />
+        <div className="absolute top-[68%] right-[22%] h-2 w-2 rounded-full bg-blue-300 shadow-[0_0_16px_rgba(96,165,250,0.75)] animate-pulse" style={{ animationDelay: '0.7s' }} />
+        <div className="absolute top-[38%] right-[10%] h-1.5 w-1.5 rounded-full bg-indigo-300 shadow-[0_0_14px_rgba(165,180,252,0.7)] animate-pulse" style={{ animationDelay: '1.1s' }} />
       </div>
 
       <motion.div
-        className="w-full max-w-sm relative z-10"
+        className="relative z-10 w-full max-w-[24rem]"
         initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 14, filter: 'blur(8px)' }}
         animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
         transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, ease: 'easeOut' }}
       >
         {/* Logo Section */}
-        <div className="text-center mb-2">
+        <div className="mb-4 text-center">
           {/* Premium Logo Container */}
           <motion.div
-            className="relative inline-block mb-2"
+            className="relative mx-auto mb-2 inline-block"
             whileHover={shouldReduceMotion ? undefined : { scale: 1.01 }}
             transition={shouldReduceMotion ? undefined : { type: 'spring', stiffness: 260, damping: 22 }}
           >
             {/* Outer glow ring - animated */}
-            <div className="absolute -inset-5">
+            <div className="absolute -inset-3">
               <div className="w-full h-full rotate-0 animate-spin-slow">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 opacity-30 blur-2xl"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 opacity-25 blur-2xl"></div>
               </div>
             </div>
             
             {/* Middle ring - counter rotation */}
-            <div className="absolute -inset-3">
+            <div className="absolute -inset-1">
               <div className="w-full h-full -rotate-45 animate-reverse-spin">
                 <div className="absolute top-0 left-1/2 w-3 h-3 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50"></div>
                 <div className="absolute bottom-0 right-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50"></div>
@@ -139,81 +135,94 @@ export function LoginPage() {
             {/* Logo Card */}
             <div className="relative">
               {/* Glass effect background */}
-              <div className="absolute inset-0 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/20 shadow-2xl"></div>
+              <div className="absolute inset-0 bg-white/8 backdrop-blur-2xl rounded-[1.7rem] border border-white/16 shadow-[0_18px_80px_-28px_rgba(15,23,42,0.7)]"></div>
               
               {/* Inner glow */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-transparent to-purple-400/20 rounded-[2rem]"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/14 via-transparent to-blue-500/14 rounded-[1.7rem]"></div>
 
               {/* Subtle highlight */}
-              <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-white/10 via-transparent to-transparent"></div>
+              <div className="absolute inset-0 rounded-[1.7rem] bg-gradient-to-b from-white/10 via-transparent to-transparent"></div>
               
               {/* Logo container */}
-              <div className="relative px-7 py-5">
+              <div className="relative px-6 py-3.5 sm:px-7 sm:py-4">
                 <div className="relative">
                   {/* Logo shadow */}
-                  <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-500 to-purple-500 opacity-50"></div>
-                  <img src={logoImage} alt="LEONI" className="h-16 w-auto block mx-auto relative z-10 drop-shadow-2xl" />
+                  <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-blue-500 to-cyan-400 opacity-35"></div>
+                  <img src={logoImage} alt="LEONI" className="h-11 w-auto block mx-auto relative z-10 drop-shadow-[0_16px_28px_rgba(15,23,42,0.42)] sm:h-12" />
                 </div>
               </div>
               
               {/* Animated corner accents */}
-              <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-blue-400/60 rounded-tl-2xl animate-pulse"></div>
-              <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-cyan-400/60 rounded-tr-2xl animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-              <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-purple-400/60 rounded-bl-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-              <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-blue-400/60 rounded-br-2xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+              <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-cyan-300/60 rounded-tl-2xl animate-pulse"></div>
+              <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-blue-300/60 rounded-tr-2xl animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+              <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-indigo-300/60 rounded-bl-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+              <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-cyan-300/60 rounded-br-2xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
             </div>
           </motion.div>
           
           {/* Brand Title */}
-          <div className="mb-1 space-y-1">
+          <div className="mb-4 space-y-2">
             <div className="flex items-center justify-center gap-3">
-              <div className="h-px w-10 bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                <span className="text-xs font-bold text-blue-100 tracking-wider">LEONI SYSTEMS</span>
+              <div className="h-px w-10 bg-gradient-to-r from-transparent via-cyan-300 to-transparent"></div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/8 backdrop-blur-md border border-white/12 rounded-full shadow-sm">
+                <div className="w-2 h-2 bg-cyan-300 rounded-full animate-pulse shadow-lg shadow-cyan-300/50"></div>
+                <span className="text-[11px] font-bold text-blue-100 tracking-[0.22em]">LEONI SYSTEMS</span>
               </div>
-              <div className="h-px w-10 bg-gradient-to-l from-transparent via-blue-400 to-transparent"></div>
+              <div className="h-px w-10 bg-gradient-to-l from-transparent via-cyan-300 to-transparent"></div>
             </div>
             
             <div className="flex items-center justify-center gap-2">
-              <div className="h-px w-6 bg-gradient-to-r from-transparent to-blue-400/50"></div>
-              <p className="text-blue-200 text-sm font-semibold tracking-wide">
+              <div className="h-px w-6 bg-gradient-to-r from-transparent to-cyan-300/50"></div>
+              <p className="text-cyan-100 text-sm font-semibold tracking-wide">
                 Enterprise Asset Management
               </p>
-              <div className="h-px w-6 bg-gradient-to-l from-transparent to-blue-400/50"></div>
+              <div className="h-px w-6 bg-gradient-to-l from-transparent to-cyan-300/50"></div>
             </div>
           </div>
         </div>
 
         {/* Login Form */}
-        <div className="relative">
+          <div className="relative">
           {/* Form glow */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-3xl opacity-25 blur-xl"></div>
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 rounded-[2rem] opacity-22 blur-xl"></div>
           
           {/* Form card */}
-          <div className="relative bg-white/92 backdrop-blur-xl rounded-3xl shadow-2xl p-5 border border-white/25 overflow-hidden">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/60 via-transparent to-blue-50/30"></div>
-            <div className="pointer-events-none absolute -top-24 -right-24 h-60 w-60 rounded-full bg-blue-500/10 blur-3xl"></div>
-            <h2 className="text-lg font-bold bg-gradient-to-r from-[#1B4F91] to-[#2563EB] bg-clip-text text-transparent mb-3">
-              Secure Sign In
+          <div className="relative overflow-hidden rounded-[1.9rem] border border-white/18 bg-slate-950/72 p-4.5 shadow-[0_30px_120px_-35px_rgba(2,6,23,0.9)] backdrop-blur-2xl sm:p-5">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.10),transparent_30%)]" />
+            <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
+
+            <div className="mb-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-300/50 to-transparent" />
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-cyan-100">
+                Secure access
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-blue-300/50 to-transparent" />
+            </div>
+
+            <h2 className="text-lg font-bold tracking-tight bg-gradient-to-r from-cyan-200 via-blue-100 to-white bg-clip-text text-transparent">
+              Enterprise Sign In
             </h2>
+            <p className="mb-4 mt-2 text-sm leading-6 text-slate-300">
+              Access the LEONI platform with your enterprise credentials.
+            </p>
             
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-800 mb-1.5">
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-200">
                   Email
                 </label>
                 <div className="group relative">
-                  <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-[#1B4F91]/30 via-[#2563EB]/30 to-cyan-500/30 opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-cyan-400/30 via-blue-400/30 to-indigo-400/30 opacity-0 transition-opacity group-focus-within:opacity-100" />
+                  <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-cyan-300" />
                   <input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="relative w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/80 border border-gray-200/90 text-black placeholder:text-gray-400 focus:ring-2 focus:ring-[#1B4F91]/40 focus:border-transparent outline-none transition-all shadow-sm"
-                    placeholder="votre.email@leoni.com"
+                    className="relative w-full rounded-xl border border-white/10 bg-slate-900/75 py-3 pl-11 pr-4 text-slate-100 outline-none transition-all placeholder:text-slate-500 shadow-sm focus:border-cyan-300/40 focus:ring-2 focus:ring-cyan-400/20"
+                    placeholder="your.email@leoni.com"
                     autoComplete="username"
                     inputMode="email"
                   />
@@ -222,12 +231,12 @@ export function LoginPage() {
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-800 mb-1.5">
+                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-200">
                   Password
                 </label>
                 <div className="group relative">
-                  <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-[#1B4F91]/30 via-[#2563EB]/30 to-cyan-500/30 opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-cyan-400/30 via-blue-400/30 to-indigo-400/30 opacity-0 transition-opacity group-focus-within:opacity-100" />
+                  <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-cyan-300" />
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -235,14 +244,14 @@ export function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyUp={(e) => setIsCapsLockOn(e.getModifierState('CapsLock'))}
                     onKeyDown={(e) => setIsCapsLockOn(e.getModifierState('CapsLock'))}
-                    className="relative w-full pl-11 pr-11 py-2.5 rounded-xl bg-white/80 border border-gray-200/90 text-black placeholder:text-gray-400 focus:ring-2 focus:ring-[#1B4F91]/40 focus:border-transparent outline-none transition-all shadow-sm"
+                    className="relative w-full rounded-xl border border-white/10 bg-slate-900/75 py-3 pl-11 pr-11 text-slate-100 outline-none transition-all placeholder:text-slate-500 shadow-sm focus:border-cyan-300/40 focus:ring-2 focus:ring-cyan-400/20"
                     placeholder="••••••••"
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-cyan-200"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -252,12 +261,12 @@ export function LoginPage() {
 
               {/* Remember + CapsLock */}
               <div className="flex items-center justify-between gap-3">
-                <label className="inline-flex items-center gap-2 text-sm text-gray-700 select-none">
+                <label className="inline-flex select-none items-center gap-2 text-sm text-slate-300">
                   <input
                     type="checkbox"
                     checked={rememberEmail}
                     onChange={(e) => setRememberEmail(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-[#1B4F91] focus:ring-[#1B4F91]/40"
+                    className="h-4 w-4 rounded border-slate-500 text-cyan-500 focus:ring-cyan-400/40"
                   />
                   Remember email
                 </label>
@@ -270,7 +279,7 @@ export function LoginPage() {
                       animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                       exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
                       transition={{ duration: 0.16, ease: 'easeOut' }}
-                      className="text-xs font-semibold text-amber-700"
+                      className="text-xs font-semibold text-amber-300"
                     >
                       Caps Lock is ON
                     </motion.div>
@@ -287,7 +296,7 @@ export function LoginPage() {
                     animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                     exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
                     transition={{ duration: 0.16, ease: 'easeOut' }}
-                    className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"
+                      className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200"
                   >
                     {error}
                   </motion.div>
@@ -298,10 +307,10 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full relative group overflow-hidden bg-gradient-to-r from-[#1B4F91] via-[#2563EB] to-[#3B82F6] text-white py-2.5 rounded-xl font-bold transition-all duration-300 ${
+                className={`relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-[#163B78] via-[#1E63C6] to-cyan-500 py-3 font-bold text-white transition-all duration-300 ${
                   isSubmitting
                     ? 'opacity-70 cursor-not-allowed'
-                    : 'hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-[1.02]'
+                    : 'hover:scale-[1.01] hover:shadow-2xl hover:shadow-cyan-500/25'
                 }`}
               >
                 <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -322,45 +331,21 @@ export function LoginPage() {
                     </>
                   )}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
               </button>
             </form>
-
-            {/* Demo Info */}
-            <div className="mt-3 p-2.5 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-100">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5">
-                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-blue-900 mb-0.5">Demo accounts</p>
-                  <p className="text-xs text-blue-700">
-                    Password (test): <span className="font-mono">{DEMO_PASSWORD}</span>
-                  </p>
-                  <div className="mt-2 grid grid-cols-1 gap-0.5">
-                    {DEMO_ACCOUNTS.map((a) => (
-                      <div key={a.email} className="text-xs text-blue-800">
-                        <span className="font-semibold">{a.role}:</span> <span className="font-mono">{a.email}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-center mt-2 space-y-1">
           <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-            <p className="text-blue-200 text-xs font-medium">
+            <div className="h-2 w-2 rounded-full bg-cyan-300 animate-pulse shadow-lg shadow-cyan-300/50"></div>
+            <p className="text-slate-300 text-xs font-medium">
               Secure and encrypted system
             </p>
           </div>
-          <p className="text-blue-300/60 text-xs">© 2026 LEONI. All rights reserved.</p>
+          <p className="text-slate-400/70 text-xs">© 2026 LEONI. All rights reserved.</p>
         </div>
       </motion.div>
     </div>

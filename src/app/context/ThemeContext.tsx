@@ -67,7 +67,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
       transitionTimeoutRef.current = window.setTimeout(() => {
         root.classList.remove('theme-transition');
-      }, 260);
+      }, 360);
     } else {
       root.classList.remove('theme-transition');
     }

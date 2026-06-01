@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Wrench, AlertCircle } from 'lucide-react';
+﻿import React, { useEffect, useState } from 'react';
+import { Plus, Wrench, AlertCircle, Clock, CheckCircle2, BadgePercent, LayoutDashboard } from 'lucide-react';
 import type { TicketStatus } from '../types';
 import { AddMaintenanceTicketModal } from '../components/ui/AddMaintenanceTicketModal';
 import { useNotifications } from '../context/NotificationContext';
@@ -8,19 +8,21 @@ import { useData } from '../context/DataContext';
 import { formatMAD } from '../lib/money';
 import { useAuth } from '../context/AuthContext';
 import { canPerformAction } from '../lib/rbac';
+import { motion } from 'motion/react';
+import { cn } from '../components/ui/utils';
 
 const ticketStatusStyles: Record<TicketStatus, string> = {
-  Open: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-200',
-  InProgress: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200',
-  Done: 'bg-green-100 text-green-700 dark:bg-emerald-500/15 dark:text-emerald-300',
-  Closed: 'bg-muted text-muted-foreground'
+  Open: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200/50 dark:border-orange-500/20',
+  InProgress: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/20',
+  Done: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-500/20',
+  Closed: 'bg-muted text-muted-foreground border-border/50'
 };
 
 const ticketStatusIcons: Record<TicketStatus, React.ReactNode> = {
-  Open: <AlertCircle className="w-5 h-5" />,
-  InProgress: <Wrench className="w-5 h-5" />,
-  Done: <Wrench className="w-5 h-5" />,
-  Closed: <Wrench className="w-5 h-5" />
+  Open: <AlertCircle className="w-3.5 h-3.5" />,
+  InProgress: <Clock className="w-3.5 h-3.5" />,
+  Done: <CheckCircle2 className="w-3.5 h-3.5" />,
+  Closed: <CheckCircle2 className="w-3.5 h-3.5" />
 };
 
 export function MaintenancePage() {
@@ -65,7 +67,7 @@ export function MaintenancePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-12">
       {/* Header */}
       <div className="page-hero">
         <div className="page-hero__topline" aria-hidden />
@@ -91,150 +93,143 @@ export function MaintenancePage() {
                 </h1>
 
                 <div className="page-hero__underline" aria-hidden />
-                <p className="page-hero__subtitle">Manage maintenance tickets and repairs</p>
+                <p className="page-hero__subtitle uppercase tracking-[0.15em] text-[10px] font-black opacity-60">Manage maintenance tickets and repairs</p>
               </div>
             </div>
           </div>
 
           {canManageMaintenance && (
             <div className="page-hero__actions">
-              <button
-                className="flex items-center gap-2 bg-[#1F3C88] text-white px-4 py-2 rounded-lg hover:bg-[#163069] transition-colors"
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                className="chip-industrial flex items-center gap-2 bg-gradient-to-br from-primary to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg shadow-primary/20 transition-all font-bold text-sm uppercase tracking-widest"
                 onClick={() => setIsModalOpen(true)}
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 New ticket
-              </button>
+              </motion.button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-primary/5 dark:bg-primary/10 rounded-xl shadow-sm border border-primary/20 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-orange-600" />
+      {/* Stats Premium */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Open Tickets', value: openTickets.length, icon: AlertCircle, color: '#f97316', glow: 'from-orange-500/20' },
+          { label: 'In Progress', value: ticketsList.filter(t => t.status === 'InProgress').length, icon: Clock, color: '#3b82f6', glow: 'from-blue-500/20' },
+          { label: 'Completed', value: ticketsList.filter(t => t.status === 'Done').length, icon: CheckCircle2, color: '#10b981', glow: 'from-emerald-500/20' },
+          { label: 'Total Cost', value: formatMAD(totalCost, { decimals: 0 }), icon: BadgePercent, color: '#8b5cf6', glow: 'from-purple-500/20' },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="panel-frame group relative overflow-hidden p-6 bg-card/50 backdrop-blur-md rounded-2xl border border-border/60"
+          >
+            <div className={cn("absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500", stat.glow, "to-transparent")} />
+            <div className="relative z-10 flex items-start justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">{stat.label}</p>
+                <p className="text-3xl font-black tracking-tighter text-foreground">{stat.value}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-card border border-border shadow-sm group-hover:scale-110 transition-transform duration-500">
+                <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Open Tickets</p>
-              <p className="text-2xl font-bold text-foreground">{openTickets.length}</p>
+            <div className="mt-4 flex items-center gap-2">
+              <div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: '60%' }}
+                  className="h-full bg-gradient-to-r from-transparent"
+                  style={{ backgroundColor: stat.color }}
+                />
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-primary/5 dark:bg-primary/10 rounded-xl shadow-sm border border-primary/20 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Wrench className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">In Progress</p>
-              <p className="text-2xl font-bold text-foreground">
-                {ticketsList.filter(t => t.status === 'InProgress').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-primary/5 dark:bg-primary/10 rounded-xl shadow-sm border border-primary/20 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-              <Wrench className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Completed</p>
-              <p className="text-2xl font-bold text-foreground">
-                {ticketsList.filter(t => t.status === 'Done').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-primary/5 dark:bg-primary/10 rounded-xl shadow-sm border border-primary/20 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-              <span className="text-xl font-bold text-purple-600">MAD</span>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Cost</p>
-              <p className="text-2xl font-bold text-foreground">{formatMAD(totalCost, { decimals: 2 })}</p>
-            </div>
-          </div>
-        </div>
+          </motion.div>
+        ))}
       </div>
 
       {/* Tickets Table */}
-      <div className="premium-surface">
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground">Ticket List</h2>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60"
+      >
+        <div className="px-8 py-6 border-b border-border/50 bg-gradient-to-r from-muted/30 to-transparent flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <LayoutDashboard className="w-4 h-4" />
+            </div>
+            <h2 className="text-lg font-black tracking-tight text-foreground uppercase">Ticket Registry</h2>
+          </div>
+          <div className="px-3 py-1 rounded-full bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            {ticketsList.length} Total Records
+          </div>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto sidebar-scroll">
           <table className="w-full premium-table">
-            <thead className="bg-muted/40 border-b border-border">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Ticket Number
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Asset
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Provider
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Cost
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Open Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Close Date
-                </th>
+            <thead>
+              <tr className="bg-muted/20">
+                {['ID', 'Asset', 'Description', 'Status', 'Provider', 'Cost', 'Timeline'].map((h) => (
+                  <th key={h} className="px-6 py-3 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="divide-y divide-border/40">
               {ticketsList.map((ticket) => {
                 const asset = assets.find(a => a.id === ticket.assetId);
                 return (
-                  <tr key={ticket.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="font-medium text-foreground">{ticket.id}</span>
+                  <tr key={ticket.id} className="group hover:bg-primary/5 transition-all duration-300">
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="font-black text-xs tracking-widest text-primary/80 group-hover:text-primary transition-colors">#{ticket.id}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-foreground">{asset?.assetTag}</div>
-                        <div className="text-xs text-muted-foreground">{asset?.model}</div>
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-bold text-foreground leading-none">{asset?.assetTag || 'Unknown'}</span>
+                        <span className="text-[11px] font-medium text-muted-foreground mt-1">{asset?.model || 'â€”'}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground max-w-xs truncate">
+                    <td className="px-8 py-5 text-[13px] text-muted-foreground max-w-xs truncate font-medium">
                       {ticket.description}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${ticketStatusStyles[ticket.status]}`}>
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className={cn(
+                        "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2 border shadow-sm transition-transform group-hover:scale-105",
+                        ticketStatusStyles[ticket.status]
+                      )}>
                         {ticketStatusIcons[ticket.status]}
                         {ticket.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] font-bold text-foreground/70">
                       {ticket.provider}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
-                      {ticket.cost === 0 ? 'Warranty' : formatMAD(ticket.cost, { decimals: 2 })}
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] text-foreground font-black tracking-tight">
+                      {ticket.cost === 0 ? (
+                        <span className="text-blue-500 uppercase tracking-widest text-[10px]">Warranty</span>
+                      ) : formatMAD(ticket.cost, { decimals: 2 })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {new Date(ticket.openDate).toLocaleDateString('en-US')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {ticket.closeDate ? new Date(ticket.closeDate).toLocaleDateString('en-US') : '-'}
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-bold text-foreground/60 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          {new Date(ticket.openDate).toLocaleDateString('en-GB')}
+                        </span>
+                        {ticket.closeDate && (
+                          <span className="text-[11px] font-bold text-muted-foreground/50 flex items-center gap-1.5 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-muted" />
+                            {new Date(ticket.closeDate).toLocaleDateString('en-GB')}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -242,14 +237,24 @@ export function MaintenancePage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Info Box */}
-      <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-        <p className="text-sm text-foreground">
-          <strong>Business rule:</strong> When a ticket is open or in progress, the associated asset status is automatically set to "InRepair".
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6 }}
+        className="panel-frame bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center gap-4"
+      >
+        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-inner">
+          <AlertCircle className="w-5 h-5" />
+        </div>
+        <p className="text-[13px] font-medium text-foreground/80 leading-relaxed">
+          <strong className="text-primary uppercase tracking-widest text-xs mr-2">System Protocol:</strong> 
+          When a maintenance ticket status is set to <span className="font-black text-orange-500">Open</span> or <span className="font-black text-blue-500">InProgress</span>, 
+          the associated asset is automatically flagged as <span className="italic font-bold text-foreground underline decoration-primary/30">InRepair</span> in the master inventory.
         </p>
-      </div>
+      </motion.div>
 
       {/* Add Maintenance Ticket Modal */}
       <AddMaintenanceTicketModal 

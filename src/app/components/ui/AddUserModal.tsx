@@ -223,7 +223,7 @@ export function AddUserModal({ isOpen, onClose, onAdd, initialUser, onUpdate }: 
         if (!open) handleClose();
       }}
     >
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
         <form onSubmit={handleSubmit} className="space-y-8">
           <DialogHeader>
             <DialogTitle>

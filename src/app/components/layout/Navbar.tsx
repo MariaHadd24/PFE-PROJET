@@ -5,7 +5,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router';
 import { NotificationPanel } from '../ui/NotificationPanel';
 import { motion } from 'motion/react';
-import logoImage from '../../assets/leoni-logo.svg';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Input } from '../ui/input';
 import { toast } from 'sonner';
@@ -13,6 +12,8 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useData } from '../../context/DataContext';
+
+const logoImage = new URL('../../assets/leoni-logo.svg', import.meta.url).href;
 
 const NavLink = React.forwardRef<
   HTMLAnchorElement,
@@ -94,6 +95,11 @@ export function Navbar({
     toast.success('Profile photo updated');
   };
 
+  const handleDeleteProfilePhoto = () => {
+    updateUser({ avatarUrl: '' });
+    toast.success('Profile photo removed');
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -173,6 +179,13 @@ export function Navbar({
         icon: <FileText className="w-4 h-4" />,
         onSelect: () => navigate('/pdf-history'),
       },
+      {
+        id: 'nav-sessions',
+        label: 'Sessions',
+        group: 'Navigation', 
+        icon: <UsersIcon className="w-4 h-4" />,
+        onSelect: () => navigate('/sessions'),
+      },
     );
 
     for (const a of assets) {
@@ -212,82 +225,112 @@ export function Navbar({
   }, [assets, maintenanceTickets, navigate, usersList]);
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-20 bg-gradient-to-b from-white/95 via-white/90 to-white/85 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/85 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 z-40 shadow-lg transition-colors duration-300">
-      {/* Premium highlight line */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
-      <div className="h-full px-8 flex items-center justify-between">
+    <div className="control-rail fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-[0_4px_30px_-10px_rgba(2,6,23,0.2)] transition-all duration-300">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-300/75 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(44,102,255,0.14),transparent_44%),radial-gradient(circle_at_100%_0%,rgba(31,197,255,0.12),transparent_42%),linear-gradient(90deg,rgba(15,35,57,0.04),transparent_34%,rgba(198,132,74,0.05)_76%,transparent)]" />
+      <div className="mx-auto flex h-20 max-w-[1680px] items-center justify-between px-3 sm:px-6 lg:px-8 gap-3 sm:gap-4 relative z-10">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
         {/* Logo Section */}
         <motion.div 
-          className="flex items-center gap-5"
+          className="flex items-center gap-3"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
           <motion.button
             type="button"
             onClick={onToggleSidebar}
-            className="p-2.5 text-gray-600 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/70 rounded-xl transition-all duration-200"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.98 }}
+            className="chip-industrial relative inline-flex h-11 w-11 items-center justify-center rounded-xl text-foreground transition-all duration-300 hover:border-cyan-300/60 hover:text-primary dark:text-gray-100 dark:hover:border-cyan-300/45 group overflow-hidden"
+            whileHover={{ scale: 1.08, y: -3 }}
+            whileTap={{ scale: 0.93 }}
             title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
             aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
-            <Menu className="w-5 h-5" />
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-300"
+              animate={{ opacity: [0.1, 0.3, 0.1] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            />
+            <Menu className="w-5 h-5 relative z-10 transition-all duration-300 group-hover:scale-110" />
           </motion.button>
 
+          {/* Divider */}
+          <div className="w-px h-7 bg-gradient-to-b from-white/0 via-white/15 to-white/0 dark:via-white/10" />
+
           {/* Sophisticated Logo Container */}
-          <button
+          <motion.button
             type="button"
             onClick={() => navigate('/dashboard')}
             className="relative group cursor-pointer"
             title="Go to Dashboard"
             aria-label="Go to Dashboard"
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ duration: 0.3 }}
           >
-            {/* Animated background glow */}
-            <div className="absolute -inset-2 bg-gradient-to-r from-primary via-primary/70 to-primary/50 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-all duration-500 animate-pulse"></div>
-            
-            {/* Logo Card */}
-            <div className="relative bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 px-6 py-2 rounded-xl shadow-xl border-2 border-white dark:border-gray-700 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-              {/* Corner accents */}
-              <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-primary rounded-tl-lg opacity-60"></div>
-              <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-primary/70 rounded-br-lg opacity-60"></div>
-              
-              <img src={logoImage} alt="LEONI" className="h-10 w-auto block relative z-10 group-hover:brightness-110 transition-all duration-300" />
+            <div className="absolute -inset-3 bg-gradient-to-r from-primary/40 via-primary/20 to-transparent rounded-xl opacity-0 group-hover:opacity-50 blur-lg transition-all duration-500 group-hover:blur-xl" />
+            <motion.div 
+              className="absolute -inset-3 bg-gradient-to-r from-primary/20 via-transparent to-transparent rounded-xl opacity-0 transition-all duration-500"
+              animate={{ opacity: [0, 0.15, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            />
+            <div className="panel-frame relative px-5 py-2.5 rounded-xl group-hover:shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-sm">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent opacity-0 group-hover:opacity-70 transition-opacity duration-300" />
+              <img src={logoImage} alt="LEONI" className="h-8 w-auto block relative z-10 group-hover:drop-shadow-xl transition-all duration-300 scale-100 group-hover:scale-105" />
             </div>
-          </button>
-          
-          {/* Elegant Divider */}
-          <div className="h-14 w-px bg-gradient-to-b from-transparent via-primary/30 dark:via-primary/30 to-transparent"></div>
-          
-          {/* Brand Identity */}
-          <div className="flex flex-col gap-0.5">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Enterprise Asset Management Platform</p>
-          </div>
+          </motion.button>
         </motion.div>
+        </div>
 
         {/* Right side */}
         <motion.div 
-          className="flex items-center gap-4"
+          className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3 lg:gap-4"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
+          <motion.button
+            onClick={() => setIsSearchOpen(true)}
+            className="chip-industrial inline-flex h-11 w-11 items-center justify-center rounded-xl text-foreground shadow-lg shadow-black/5 transition-all duration-200 hover:border-cyan-300/60 dark:text-gray-200 dark:hover:border-cyan-300/45 lg:hidden"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title="Search (Ctrl+K)"
+            aria-label="Search"
+          >
+            <SearchIcon className="h-5 w-5" />
+          </motion.button>
+
           {/* Global Search */}
           <motion.button
             onClick={() => setIsSearchOpen(true)}
-            className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200/70 dark:border-gray-700/60 text-gray-700 dark:text-gray-200 hover:bg-white hover:dark:bg-gray-800 transition-colors"
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.98 }}
+            className="chip-industrial hidden lg:flex min-w-[340px] items-center gap-3 rounded-xl px-4 py-2.5 text-foreground shadow-lg shadow-black/5 transition-all duration-200 hover:border-cyan-300/60 dark:text-gray-200 dark:hover:border-cyan-300/45 group overflow-hidden relative"
+            whileHover={{ y: -3, scale: 1.01 }}
+            whileTap={{ scale: 0.97 }}
             title="Search (Ctrl+K)"
           >
-            <SearchIcon className="w-4 h-4" />
-            <span className="text-sm font-medium">Search…</span>
-            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              <CommandIcon className="w-3.5 h-3.5" />
-              K
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-300"
+              animate={{ opacity: [0.05, 0.15, 0.05] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            />
+            <motion.span 
+              className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/25 to-primary/15 text-primary transition-all group-hover:from-primary/35 group-hover:to-primary/25 group-hover:shadow-lg group-hover:shadow-primary/20 relative z-10"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <SearchIcon className="w-4 h-4" />
+            </motion.span>
+            <span className="flex min-w-0 flex-1 items-center justify-between gap-3 relative z-10">
+              <span className="truncate text-sm font-medium text-foreground/80 dark:text-gray-200">Search anything...</span>
+              <span className="hidden items-center gap-1.5 rounded-md border border-cyan-300/40 bg-cyan-300/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-foreground/75 lg:flex dark:text-gray-200 dark:bg-cyan-300/15 dark:border-cyan-300/35 transition-all">
+                <CommandIcon className="h-3 w-3" />
+                K
+              </span>
             </span>
           </motion.button>
+
+          {/* Divider */}
+          <div className="hidden lg:block w-px h-7 bg-gradient-to-b from-white/0 via-white/15 to-white/0 dark:via-white/10" />
 
           <CommandDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} title="Global Search" description="Search assets, users, orders, tickets…">
             <CommandInput placeholder="Search assets, users, orders, tickets…" />
@@ -389,28 +432,32 @@ export function Navbar({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <motion.button
-                className="relative p-2 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-lg transition-all duration-300 group overflow-hidden"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="chip-industrial relative inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl text-foreground shadow-lg shadow-black/5 transition-all duration-300 hover:border-cyan-300/60 dark:text-gray-200 dark:hover:border-cyan-300/45 group"
+                whileHover={{ scale: 1.08, y: -3, rotate: 10 }}
+                whileTap={{ scale: 0.93 }}
                 title="Theme"
               >
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-300"
+                  animate={{ opacity: [0.1, 0.2, 0.1] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                />
                 <motion.div
                   initial={false}
                   animate={{ rotate: isDark ? 180 : 0 }}
-                  transition={{ duration: 0.5, type: 'spring' }}
+                  transition={{ duration: 0.5, type: 'spring', stiffness: 200 }}
+                  className="relative z-10"
                 >
                   {isDark ? (
-                    <Sun className="w-5 h-5 text-yellow-400" />
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.3 }}>
+                      <Sun className="w-5 h-5 text-yellow-400" />
+                    </motion.div>
                   ) : (
-                    <Moon className="w-5 h-5 text-gray-700" />
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.3 }}>
+                      <Moon className="w-5 h-5 text-foreground/80" />
+                    </motion.div>
                   )}
                 </motion.div>
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/20 rounded-xl"
-                  initial={{ scale: 0, opacity: 0 }}
-                  whileHover={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                />
               </motion.button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -424,33 +471,51 @@ export function Navbar({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Divider */}
+          <div className="w-px h-7 bg-gradient-to-b from-white/0 via-white/15 to-white/0 dark:via-white/10" />
+
           {/* Notifications */}
           <NotificationPanel />
 
           {/* User menu */}
-          <div className="flex items-center gap-3 pl-3 border-l border-gray-200 dark:border-gray-700">
+          <div className="panel-frame flex items-center gap-2 rounded-xl px-1.5 py-1 transition-all duration-300 hover:border-white/35 dark:hover:border-white/20 group overflow-hidden relative">
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-30 transition-opacity duration-300"
+              animate={{ opacity: [0.05, 0.15, 0.05] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            />
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <motion.button 
+                  className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-black/5 dark:hover:bg-white/10 relative z-10"
+                  whileHover={{ scale: 1.03 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
                   <motion.div
-                    whileHover={{ scale: 1.08, rotate: 3 }}
-                    transition={{ type: 'spring', stiffness: 300 }}
-                    className="rounded-full"
+                    whileHover={{ scale: 1.15, rotate: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 350 }}
+                    className="rounded-full ring-2 ring-white/40 dark:ring-slate-700/50 shadow-lg shadow-primary/20 transition-all group-hover:ring-white/60 dark:group-hover:ring-slate-600/70"
                   >
-                    <Avatar className="size-8">
+                    <Avatar className="size-8 border border-white/30 dark:border-slate-700/60 hover:border-primary/40 dark:hover:border-primary/60 transition-colors">
                       <AvatarImage src={String((user as any)?.avatarUrl ?? '') || undefined} alt={profileEmail} />
-                      <AvatarFallback className="text-xs font-semibold">{profileInitials}</AvatarFallback>
+                      <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-primary/30 to-primary/15 text-primary dark:from-primary/20 dark:to-primary/10">{profileInitials}</AvatarFallback>
                     </Avatar>
                   </motion.div>
-                  <div className="text-sm text-left">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{profileEmail}</div>
+                  <div className="hidden max-w-[140px] text-left lg:block">
+                    <motion.div className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {profileName || profileEmail}
+                    </motion.div>
+                    <div className="truncate text-xs text-gray-600 dark:text-gray-400">{profileEmail}</div>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
-                </button>
+                  <motion.div className="ml-auto">
+                    <ChevronDown className="w-4 h-4 text-foreground/70 dark:text-gray-300 transition-transform" />
+                  </motion.div>
+                </motion.button>
               </PopoverTrigger>
 
-              <PopoverContent align="end" className="w-[360px] p-0 border-gray-200 dark:border-gray-700">
-                <div className="p-4 flex items-center gap-3">
+              <PopoverContent align="end" className="panel-frame w-[360px] p-0 shadow-2xl shadow-black/20 backdrop-blur-xl rounded-xl">
+                <div className="flex items-center gap-3 border-b border-white/10 p-4 bg-gradient-to-r from-primary/12 via-cyan-300/10 to-transparent dark:from-primary/20 dark:border-white/5">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -477,23 +542,50 @@ export function Navbar({
                     />
                   </div>
 
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{profileName || profileEmail}</h3>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-semibold text-gray-900 dark:text-gray-100">{profileName || profileEmail}</h3>
                     <p className="text-xs text-gray-500 mt-0.5 truncate">{profileName ? profileEmail : 'Clique sur la photo pour changer'}</p>
                     {profileName && <p className="text-xs text-gray-500 mt-0.5">Clique sur la photo pour changer</p>}
                   </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2 p-3 border-t border-white/10 dark:border-white/5">
+                  <button
+                    type="button"
+                    onClick={handlePickProfilePhoto}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/50 hover:bg-blue-100/70 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                    title="Changer la photo de profil"
+                  >
+                    Changer photo
+                  </button>
+                  {(user as any)?.avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteProfilePhoto}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/50 hover:bg-red-100/70 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                      title="Supprimer la photo de profil"
+                    >
+                      Supprimer photo
+                    </button>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>
 
             <motion.button
               onClick={handleLogout}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-900/40 rounded-lg transition-all duration-200 relative z-10 group"
+              whileHover={{ scale: 1.15, rotate: -8 }}
+              whileTap={{ scale: 0.85 }}
               title="Log out"
             >
-              <LogOut className="w-5 h-5" />
+              <motion.div 
+                animate={{ y: [0, -2, 0] }}
+                transition={{ duration: 0.5 }}
+              >
+                <LogOut className="w-5 h-5 group-hover:drop-shadow-lg transition-all" />
+              </motion.div>
             </motion.button>
           </div>
         </motion.div>

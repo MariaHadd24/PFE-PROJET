@@ -126,6 +126,17 @@ try {
     & $venvPy -m pip install -r requirements.txt
   }
 
+  # FastAPI UploadFile/FormData requires python-multipart.
+  $prevEapM = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  & $venvPy -c "import multipart" *> $null
+  $ErrorActionPreference = $prevEapM
+
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host 'Installing missing backend dependency: python-multipart' -ForegroundColor Cyan
+    & $venvPy -m pip install -r requirements.txt
+  }
+
   function Test-BackendHealth([int] $port) {
     $prevEapH = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'

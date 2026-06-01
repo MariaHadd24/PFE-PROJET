@@ -34,7 +34,7 @@ import secrets
 
 import asyncio
 
-from fastapi import APIRouter, Body, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Body, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, UploadFile, File
 from pydantic import BaseModel, Field
 
 import httpx
@@ -56,6 +56,35 @@ PDF_DIR = os.path.join(os.path.dirname(__file__), '..', 'pdfs')
 PDF_DIR = os.path.abspath(PDF_DIR)
 os.makedirs(PDF_DIR, exist_ok=True)
 
+
+def _sanitize_pdf_filename(name: str) -> str:
+    name = (name or "").strip()
+    name = os.path.basename(name)
+    name = name.replace("..", "_")
+    name = re.sub(r"[^a-zA-Z0-9._-]+", "_", name)
+    if not name.lower().endswith(".pdf"):
+        name = f"{name}.pdf" if name else "document.pdf"
+    return name or "document.pdf"
+
+
+def _unique_path_for_filename(filename: str) -> tuple[str, str]:
+    """Return (abs_path, final_filename) under PDF_DIR, collision-safe."""
+    safe = _sanitize_pdf_filename(filename)
+    base, ext = os.path.splitext(safe)
+    candidate = safe
+    fpath = os.path.join(PDF_DIR, candidate)
+    if not os.path.exists(fpath):
+        return fpath, candidate
+
+    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    for i in range(1, 1000):
+        candidate = f"{base}_{stamp}_{i}{ext}"
+        fpath = os.path.join(PDF_DIR, candidate)
+        if not os.path.exists(fpath):
+            return fpath, candidate
+
+    raise HTTPException(status_code=409, detail="Unable to allocate unique filename")
+
 @router.get("/pdfs")
 def list_pdfs():
     files = []
@@ -72,6 +101,45 @@ def list_pdfs():
     files.sort(key=lambda x: x["date"], reverse=True)
     return files
 
+
+@router.post("/pdfs/upload")
+async def upload_pdf(file: UploadFile = File(...), source: str = Query(default="upload")):
+    filename = _sanitize_pdf_filename(file.filename or "document.pdf")
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    content_type = (file.content_type or "").lower()
+    if content_type and ("pdf" not in content_type):
+        # Keep it permissive: some browsers may send application/octet-stream.
+        pass
+
+    source_safe = re.sub(r"[^a-zA-Z0-9._-]+", "_", (source or "upload").strip())[:40]
+    if source_safe and source_safe not in ("upload", "unknown"):
+        base, ext = os.path.splitext(filename)
+        filename = f"{source_safe}_{base}{ext}"
+
+    out_path, out_name = _unique_path_for_filename(filename)
+    try:
+        with open(out_path, "wb") as f:
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+    finally:
+        try:
+            await file.close()
+        except Exception:
+            pass
+
+    stat = os.stat(out_path)
+    return {
+        "ok": True,
+        "file": out_name,
+        "size": f"{stat.st_size/1024:.1f} KB",
+        "date": str(int(stat.st_mtime)),
+    }
+
 @router.get("/pdfs/{filename}")
 def download_pdf(filename: str):
     safe = filename.replace('..','').replace('/','')
@@ -83,7 +151,8 @@ def download_pdf(filename: str):
     return Response(content=data, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename={safe}"})
 
 @router.delete("/pdfs/{filename}")
-def delete_pdf(filename: str):
+def delete_pdf(filename: str, request: Request):
+    _require_admin(request)
     safe = filename.replace('..','').replace('/','')
     fpath = os.path.join(PDF_DIR, safe)
     if not os.path.isfile(fpath):
@@ -129,6 +198,7 @@ def _get_undo_target(entity: str):
         "StockMovement": (DB.movements, models.StockMovement),
         "Assignment": (DB.assignments, models.Assignment),
         "MaintenanceTicket": (DB.maintenance_tickets, models.MaintenanceTicket),
+        "Order": (DB.orders, models.Order),
         "Vendor": (DB.vendors, models.Vendor),
     }
     return targets.get(str(entity or "").strip())
@@ -904,6 +974,16 @@ def _normalize_signature_number(value: str | None) -> str | None:
     return s
 
 
+def _email_contains_leoni(value: str | None) -> bool:
+    email = str(value or "").strip().lower()
+    return bool(email) and ("leoni" in email)
+
+
+def _require_leoni_email(value: str | None, *, field: str = "email") -> None:
+    if not _email_contains_leoni(value):
+        raise HTTPException(status_code=422, detail=f"{field} must contain 'leoni'")
+
+
 def _generate_unique_signature_number() -> str:
     existing = set()
     try:
@@ -943,6 +1023,8 @@ def create_user(payload: dict = Body(...), request: Request = None):
     data = validated.model_dump()
     user_id = data.pop("id", None)
     password = str(data.pop("password") or "").strip()
+
+    _require_leoni_email(data.get("email"), field="email")
 
     if "signatureNumber" in data:
         data["signatureNumber"] = _normalize_signature_number(data.get("signatureNumber"))
@@ -1000,6 +1082,9 @@ def patch_user(user_id: str, payload: dict = Body(...), request: Request = None)
         patch["signatureData"] = _normalize_signature_data(patch.get("signatureData"))
         if not patch.get("signatureData"):
             raise HTTPException(status_code=422, detail="signatureData cannot be empty")
+
+    if "email" in patch:
+        _require_leoni_email(patch.get("email"), field="email")
 
     def updater(current: models.UserDB):
         cur = current.model_dump()
@@ -1073,6 +1158,8 @@ class LoginRequest(BaseModel):
 @router.post("/auth/login", response_model=models.User)
 def login(payload: LoginRequest):
     email_norm = (payload.email or "").strip().lower()
+    if not _email_contains_leoni(email_norm):
+        raise HTTPException(status_code=403, detail="Access denied: email must contain 'leoni'")
     users = DB.users.list()
     found = None
     for u in users:

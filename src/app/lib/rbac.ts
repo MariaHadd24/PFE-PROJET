@@ -26,6 +26,7 @@ export type AppPage =
   | 'reporting'
   | 'licences'
   | 'audit-logs'
+  | 'sessions'
   | 'admin';
 
 export function canAccessPage(role: UserRole, page: AppPage): boolean {
@@ -53,6 +54,7 @@ export function canAccessPage(role: UserRole, page: AppPage): boolean {
       return role === 'Manager';
 
     case 'audit-logs':
+    case 'sessions':
     case 'admin':
       return false;
 

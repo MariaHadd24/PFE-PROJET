@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollText, Search } from 'lucide-react';
+import { ScrollText, Search, LayoutDashboard } from 'lucide-react';
 import type { AuditLog, AuditLogResult } from '../types';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import { motion } from 'motion/react';
 import {
   Sheet,
   SheetContent,
@@ -399,23 +400,40 @@ export function AuditLogsPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="premium-surface">
-        <div className="overflow-x-auto">
+      {/* Table Premium */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl"
+      >
+        <div className="px-8 py-6 border-b border-border/50 bg-gradient-to-r from-muted/30 to-transparent flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <LayoutDashboard className="w-4 h-4" />
+            </div>
+            <h2 className="text-lg font-black tracking-tight text-foreground uppercase">Log Registry</h2>
+          </div>
+          <div className="px-3 py-1 rounded-full bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            {filteredLogs.length} Total Records
+          </div>
+        </div>
+
+        <div className="overflow-x-auto sidebar-scroll">
           <table className="w-full premium-table">
-            <thead className="bg-muted/40 border-b border-border">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Event Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Entity affected</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Triggered By</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Timestamp &amp; IP</th>
+            <thead>
+              <tr className="bg-muted/20">
+                {['Event Type', 'Entity affected', 'Triggered By', 'Description', 'Timestamp & IP'].map((h) => (
+                  <th key={h} className="px-8 py-4 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="divide-y divide-border/40">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={5} className="px-8 py-10 text-center text-[13px] text-muted-foreground font-medium">
                     No audit logs match your filters.
                   </td>
                 </tr>
@@ -423,7 +441,7 @@ export function AuditLogsPage() {
                 pagedLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="hover:bg-muted/30 transition-colors cursor-pointer"
+                    className="group hover:bg-primary/5 transition-all duration-300 cursor-pointer"
                     onClick={() => openDetails(log)}
                     role="button"
                     tabIndex={0}
@@ -434,34 +452,42 @@ export function AuditLogsPage() {
                       }
                     }}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-foreground">{log.action}</div>
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-[13px] font-black text-primary/80 group-hover:text-primary transition-colors">
+                        {log.action}
+                      </span>
                     </td>
 
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-foreground">{getEntityDisplay(log)}</div>
+                    <td className="px-8 py-5">
+                      <span className="text-[13px] font-bold text-foreground leading-none">{getEntityDisplay(log)}</span>
                     </td>
 
-                    <td className="px-6 py-4">
+                    <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary dark:bg-primary/25 dark:text-primary-foreground flex items-center justify-center font-semibold">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-xs shadow-sm ring-1 ring-primary/20">
                           {(log.userInitials ?? getInitialsFromName(log.user)).toUpperCase()}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-foreground">{log.user}</div>
-                          <div className="text-xs text-muted-foreground">{log.userRole ?? '—'}</div>
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-bold text-foreground leading-none">{log.user}</span>
+                          <span className="text-[11px] font-medium text-muted-foreground mt-1">{log.userRole ?? 'Operator'}</span>
                         </div>
                       </div>
                     </td>
 
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-muted-foreground">{log.description ?? '—'}</div>
+                    <td className="px-8 py-5">
+                      <p className="text-[13px] text-muted-foreground font-medium line-clamp-1">{log.description ?? '—'}</p>
                     </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-foreground">{formatTime(log.timestamp)}</div>
-                      <div className="text-xs text-muted-foreground">{formatDate(log.timestamp)}</div>
-                      <div className="text-xs text-muted-foreground">{log.ip}</div>
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <div className="flex flex-col items-end">
+                        <span className="text-[11px] font-bold text-foreground/60 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          {formatTime(log.timestamp)}
+                        </span>
+                        <span className="text-[10px] font-black text-muted-foreground/40 mt-1 uppercase tracking-widest">
+                          {formatDate(log.timestamp)} • IP: {log.ip || 'unknown'}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -531,7 +557,7 @@ export function AuditLogsPage() {
             ) : null}
           </div>
         ) : null}
-      </div>
+      </motion.div>
 
       {/* Details Panel */}
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>

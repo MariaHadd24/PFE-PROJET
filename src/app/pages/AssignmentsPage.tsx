@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useData } from '../context/DataContext';
 import { motion, useReducedMotion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
+import { cn } from '../components/ui/utils';
 import { canPerformAction } from '../lib/rbac';
 import { approveAssignment as approveAssignmentApi, patchAssignment } from '../data/api';
 import {
@@ -697,14 +698,14 @@ export function AssignmentsPage() {
               <div className="flex items-center gap-2">
                 <Link
                   to={`/assignments/${encodeURIComponent(String((a as any)?.id ?? ''))}`}
-                  className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                  className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:text-cyan-600 transition-colors"
                 >
                   View
                 </Link>
                 {canApproveAssignments && s === 'Pending' && (
                   <button
                     onClick={() => void approveAssignment(a)}
-                    className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                    className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 transition-colors"
                   >
                     Approve
                   </button>
@@ -712,7 +713,7 @@ export function AssignmentsPage() {
                 {canManageAssignments && s !== 'Returned' && (
                   <button
                     onClick={() => void returnAssignment(a)}
-                    className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                    className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-700 transition-colors"
                   >
                     Return
                   </button>
@@ -720,7 +721,7 @@ export function AssignmentsPage() {
                 {canManageAssignments && s === 'Active' && (
                   <button
                     onClick={() => void changeAssignment(a)}
-                    className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                    className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-amber-700 transition-colors"
                   >
                     Change
                   </button>
@@ -768,14 +769,14 @@ export function AssignmentsPage() {
               <div className="flex items-center gap-2">
                 <Link
                   to={`/assignments/${encodeURIComponent(String((a as any)?.id ?? ''))}`}
-                  className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                  className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:text-cyan-600 transition-colors"
                 >
                   View
                 </Link>
                 {canApproveAssignments && s === 'Pending' && (
                   <button
                     onClick={() => void approveAssignment(a)}
-                    className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                    className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 transition-colors"
                   >
                     Approve
                   </button>
@@ -783,7 +784,7 @@ export function AssignmentsPage() {
                 {canManageAssignments && s !== 'Returned' && (
                   <button
                     onClick={() => void returnAssignment(a)}
-                    className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                    className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-700 transition-colors"
                   >
                     Return
                   </button>
@@ -791,7 +792,7 @@ export function AssignmentsPage() {
                 {canManageAssignments && s === 'Active' && (
                   <button
                     onClick={() => void changeAssignment(a)}
-                    className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                    className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-amber-700 transition-colors"
                   >
                     Change
                   </button>
@@ -850,14 +851,14 @@ export function AssignmentsPage() {
             <div className="flex items-center gap-2">
               <Link
                 to={`/assignments/${encodeURIComponent(String((a as any)?.id ?? ''))}`}
-                className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:text-cyan-600 transition-colors"
               >
                 View
               </Link>
               {canApproveAssignments && s === 'Pending' && (
                 <button
                   onClick={() => void approveAssignment(a)}
-                  className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                  className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 transition-colors"
                 >
                   Approve
                 </button>
@@ -865,7 +866,7 @@ export function AssignmentsPage() {
               {canManageAssignments && s !== 'Returned' && (
                 <button
                   onClick={() => void returnAssignment(a)}
-                  className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                  className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-700 transition-colors"
                 >
                   Return
                 </button>
@@ -873,7 +874,7 @@ export function AssignmentsPage() {
               {canManageAssignments && s === 'Active' && (
                 <button
                   onClick={() => void changeAssignment(a)}
-                  className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted/30"
+                  className="chip-industrial inline-flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-amber-700 transition-colors"
                 >
                   Change
                 </button>
@@ -1041,62 +1042,75 @@ export function AssignmentsPage() {
 
           {canManageAssignments && (
             <div className="page-hero__actions">
-              <button
+              <motion.button
+                whileHover={shouldReduceMotion ? undefined : { scale: 1.02, y: -1 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
                 onClick={handleClearAll}
-                className="flex items-center gap-2 bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
+                className="px-4 py-2 rounded-xl bg-muted/50 border border-border text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:bg-muted transition-colors shadow-sm"
               >
                 Remove all
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileHover={shouldReduceMotion ? undefined : { scale: 1.05, y: -2 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
                 onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 bg-[#1F3C88] text-white px-4 py-2 rounded-lg hover:bg-[#163069] transition-colors"
+                className="chip-industrial flex items-center gap-2 bg-gradient-to-br from-primary to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg shadow-primary/20 transition-all font-bold text-sm uppercase tracking-widest"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 New assignment
-              </button>
+              </motion.button>
             </div>
           )}
         </div>
       </motion.div>
 
       {/* Stats */}
-      <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={shouldReduceMotion ? undefined : pageItemVariants}>
-        <motion.div className="bg-primary/5 dark:bg-primary/10 rounded-xl shadow-sm border border-primary/20 p-6" whileHover={shouldReduceMotion ? undefined : { y: -1 }}>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-emerald-500/15 flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600 dark:text-emerald-300" />
+      <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-6" variants={shouldReduceMotion ? undefined : pageItemVariants}>
+        <motion.div 
+          className="premium-surface rounded-3xl p-6 transition-all duration-200 hover:shadow-md" 
+          whileHover={shouldReduceMotion ? undefined : { y: -1 }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+              <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Active Assignments</p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none mb-1.5">Active</p>
+              <p className="text-2xl font-black text-foreground tabular-nums">
                 {searchedAssignments.filter(a => (a.status ?? 'Pending') === 'Active').length}
               </p>
             </div>
           </div>
         </motion.div>
 
-        <motion.div className="bg-primary/5 dark:bg-primary/10 rounded-xl shadow-sm border border-primary/20 p-6" whileHover={shouldReduceMotion ? undefined : { y: -1 }}>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+        <motion.div 
+          className="premium-surface rounded-3xl p-6 transition-all duration-200 hover:shadow-md" 
+          whileHover={shouldReduceMotion ? undefined : { y: -1 }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center border border-border">
               <XCircle className="w-6 h-6 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Returned</p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none mb-1.5">Returned</p>
+              <p className="text-2xl font-black text-foreground tabular-nums">
                 {searchedAssignments.filter(a => (a.status ?? 'Pending') === 'Returned').length}
               </p>
             </div>
           </div>
         </motion.div>
 
-        <motion.div className="bg-primary/5 dark:bg-primary/10 rounded-xl shadow-sm border border-primary/20 p-6" whileHover={shouldReduceMotion ? undefined : { y: -1 }}>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-500/15 flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-yellow-700 dark:text-yellow-300" />
+        <motion.div 
+          className="premium-surface rounded-3xl p-6 transition-all duration-200 hover:shadow-md" 
+          whileHover={shouldReduceMotion ? undefined : { y: -1 }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
+              <CheckCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Pending</p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none mb-1.5">Pending</p>
+              <p className="text-2xl font-black text-foreground tabular-nums">
                 {searchedAssignments.filter(a => (a.status ?? 'Pending') === 'Pending').length}
               </p>
             </div>
@@ -1106,66 +1120,84 @@ export function AssignmentsPage() {
 
       {/* Category Tabs */}
       <motion.div
-        className="bg-primary/5 dark:bg-primary/10 rounded-xl shadow-sm border border-primary/20"
+        className="premium-surface rounded-2xl p-1.5 flex flex-wrap gap-1"
         variants={shouldReduceMotion ? undefined : pageItemVariants}
       >
-        <div className="px-6 pt-4">
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {categoryTabs.map((name) => (
-              <button
-                key={name}
-                onClick={() => setActiveCategory(name)}
-                className={`pb-3 whitespace-nowrap border-b-2 font-medium text-sm transition-colors ${
-                  activeCategory === name
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                }`}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-        </div>
+        {categoryTabs.map((name) => {
+          const isActive = activeCategory === name;
+          return (
+            <button
+              key={name}
+              onClick={() => setActiveCategory(name)}
+              className={cn(
+                "relative px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300",
+                isActive 
+                  ? "text-primary shadow-sm" 
+                  : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
+              )}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-primary/10 rounded-xl border border-primary/20"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative z-10">{name}</span>
+            </button>
+          );
+        })}
       </motion.div>
 
       {/* Table */}
       <motion.div
-        className="premium-surface"
+        className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl"
         variants={shouldReduceMotion ? undefined : pageItemVariants}
       >
-        <div className="px-6 py-4 border-b border-border">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-lg font-bold text-foreground">Assignment List</h2>
-            <input
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Search..."
-              className="w-full md:w-80 h-10 px-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground"
-            />
+        <div className="px-8 py-6 border-b border-border/50 bg-gradient-to-r from-muted/30 to-transparent flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Plus className="w-4 h-4" />
+            </div>
+            <h2 className="text-lg font-black tracking-tight text-foreground uppercase">Assignment List</h2>
+          </div>
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="relative group w-full md:w-64">
+              <div className="absolute inset-0 bg-primary/5 rounded-xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity" />
+              <input
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search..."
+                className="relative w-full h-10 px-4 rounded-xl border border-border/80 bg-card text-foreground placeholder:text-muted-foreground/30 text-[13px] font-medium outline-none transition-all focus:border-primary/50 focus:ring-4 focus:ring-primary/5 shadow-sm"
+              />
+            </div>
+            <div className="px-3 py-1 rounded-full bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+              {searchedAssignments.length} Records
+            </div>
           </div>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="w-full premium-table">
-            <thead className="bg-muted/40 border-b border-border">
+        <div className="table-scrollbar sidebar-scroll">
+          <table className="w-full min-w-max premium-table">
+            <thead>
               <tr>
                 {tableColumns.map((col) => (
                   <th
                     key={col.key}
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                    className="px-8 py-4 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50"
                   >
                     {col.label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="divide-y divide-border/40">
               {searchedAssignments.map((assignment: any) => (
-                <tr key={assignment.id} className="hover:bg-muted/30 transition-colors">
+                <tr key={assignment.id} className="group transition-all duration-300">
                   {tableColumns.map((col) => (
                     <td
                       key={col.key}
-                      className={`px-6 py-4 whitespace-nowrap text-sm ${col.className ?? 'text-muted-foreground'}`}
+                      className={`px-8 py-5 whitespace-nowrap text-[13px] font-bold ${col.className ?? 'text-foreground/70'}`}
                     >
                       {col.render(assignment)}
                     </td>

@@ -273,7 +273,7 @@ export function AddAssetModal({ isOpen, onClose, onAdd, categories, sites, suppl
         if (!open) handleClose();
       }}
     >
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
         <form onSubmit={handleSubmit} className="space-y-6">
           <DialogHeader>
             <DialogTitle>Add a new asset</DialogTitle>
@@ -350,6 +350,9 @@ export function AddAssetModal({ isOpen, onClose, onAdd, categories, sites, suppl
                 </select>
                 {errors.supplier && <p className="mt-1 text-sm text-destructive">{errors.supplier}</p>}
               </div>
+
+              {/* Category */}
+              <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Category <span className="text-destructive">*</span>
                 </label>

@@ -14,6 +14,7 @@ import { formatMAD } from '../lib/money';
 import { deleteOrderFile, getOrderFile, putOrderFile } from '../lib/orderFilesDb';
 import { createOrder, deleteOrder, listOrders, patchOrder } from '../data/api';
 import type { Order, OrderFile, OrderStatus } from '../types';
+import { apiPostFormData } from '../lib/api';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter,
@@ -615,6 +616,18 @@ export function OrdersPage() {
       const orderFile: OrderFile = { name: stored.name, size: stored.size, uploadedAt: stored.uploadedAt, key: stored.key };
       const updated = await patchOrder(orderId, { [type]: orderFile } as any);
       setOrders(prev => prev.map(o => o.id === orderId ? updated : o));
+
+      // If the attachment is a PDF, also store it on the server so it appears in PDF History.
+      const isPdf = (file.type || '').toLowerCase().includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
+      if (isPdf) {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        apiPostFormData('/pdfs/upload?source=orders', fd).catch(() => {
+          // Keep the order attachment working even if history upload fails.
+          toast.warning('PDF history not updated', { description: 'The attachment was saved, but it could not be stored on the server.' });
+        });
+      }
+
       toast.success(`${type === 'bcFile' ? 'BC' : 'BL'} attached`, { description: `${file.name} (${fmtBytes(file.size)})` });
     } catch (err: any) {
       toast.error('Upload error', { description: String(err?.message ?? 'Invalid file') });
@@ -680,113 +693,139 @@ export function OrdersPage() {
                   </span>
                 </h1>
                 <div className="page-hero__underline" aria-hidden />
-                <p className="page-hero__subtitle">Order tracking — status, BC and BL</p>
+                <p className="page-hero__subtitle">Order tracking</p>
               </div>
             </div>
           </div>
           {canManageOrders && (
             <div className="page-hero__actions">
-              <button onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 bg-[#1F3C88] text-white px-4 py-2 rounded-lg hover:bg-[#163069] transition-colors text-sm font-medium">
-                <Plus className="w-4 h-4" /> New order
-              </button>
+              <motion.button
+                whileHover={shouldReduceMotion ? undefined : { scale: 1.05, y: -2 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
+                onClick={() => setIsModalOpen(true)}
+                className="chip-industrial flex items-center gap-2 bg-gradient-to-br from-primary to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg shadow-primary/20 transition-all font-bold text-sm uppercase tracking-widest"
+              >
+                <Plus className="w-4 h-4" />
+                New order
+              </motion.button>
             </div>
           )}
         </div>
       </motion.div>
 
       {/* Stats */}
-      <motion.div className="grid grid-cols-2 md:grid-cols-4 gap-4" variants={shouldReduceMotion ? undefined : pageItemVariants}>
+      <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" variants={shouldReduceMotion ? undefined : pageItemVariants}>
         {[
-          { label: 'Total orders',  value: String(stats.total),        color: 'text-foreground' },
-          { label: 'In progress',   value: String(stats.enCours),      color: 'text-amber-600 dark:text-amber-400' },
-          { label: 'Received',      value: String(stats.recues),       color: 'text-emerald-600 dark:text-emerald-400' },
-          { label: 'Total amount',  value: formatMAD(stats.montant),   color: 'text-primary' },
+          { label: 'Total orders',  value: String(stats.total),        color: 'text-foreground', icon: ShoppingCart, iconBg: 'bg-primary/10', iconColor: 'text-primary' },
+          { label: 'In progress',   value: String(stats.enCours),      color: 'text-amber-600 dark:text-amber-400', icon: ClipboardList, iconBg: 'bg-amber-500/10', iconColor: 'text-amber-600' },
+          { label: 'Received',      value: String(stats.recues),       color: 'text-emerald-600 dark:text-emerald-400', icon: Package, iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-600' },
+          { label: 'Total amount',  value: formatMAD(stats.montant),   color: 'text-primary', icon: ShoppingCart, iconBg: 'bg-primary/10', iconColor: 'text-primary' },
         ].map(s => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-4 shadow-sm">
-            <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-          </div>
+          <motion.div 
+            key={s.label} 
+            className="premium-surface rounded-3xl p-6 transition-all duration-200 hover:shadow-md"
+            whileHover={shouldReduceMotion ? undefined : { y: -1 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-2xl ${s.iconBg} flex items-center justify-center border border-current opacity-20`} style={{ color: 'inherit' }}>
+                <s.icon className={`w-6 h-6 ${s.iconColor}`} />
+              </div>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none mb-1.5">{s.label}</p>
+                <p className={`text-2xl font-black tabular-nums ${s.color}`}>{s.value}</p>
+              </div>
+            </div>
+          </motion.div>
         ))}
       </motion.div>
 
       {/* Tableau */}
-      <motion.div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden"
-        variants={shouldReduceMotion ? undefined : pageItemVariants}>
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground">
-            Orders <span className="text-muted-foreground font-normal text-base ml-1">({orders.length})</span>
-          </h2>
+      <motion.div
+        className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl"
+        variants={shouldReduceMotion ? undefined : pageItemVariants}
+      >
+        <div className="px-8 py-6 border-b border-border/50 bg-gradient-to-r from-muted/30 to-transparent flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <ClipboardList className="w-4 h-4" />
+            </div>
+            <h2 className="text-lg font-black tracking-tight text-foreground uppercase">Orders Registry</h2>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="px-3 py-1 rounded-full bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+              {orders.length} Records
+            </div>
+          </div>
         </div>
 
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
-              <ShoppingCart className="h-7 w-7 text-muted-foreground" />
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-6">
+              <ShoppingCart className="h-8 w-8 text-muted-foreground/40" />
             </div>
-            <p className="text-foreground font-medium mb-1">No orders yet</p>
-            <p className="text-sm text-muted-foreground mb-4">Create your first order to start tracking.</p>
+            <p className="text-lg font-black text-foreground uppercase tracking-tight mb-2">No orders yet</p>
+            <p className="text-sm font-medium text-muted-foreground mb-8">Create your first order to start tracking.</p>
             {canManageOrders && (
               <button onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#1F3C88] text-white rounded-lg text-sm font-medium hover:bg-[#163069] transition-colors">
+                className="chip-industrial flex items-center gap-2 bg-gradient-to-br from-primary to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg shadow-primary/20 transition-all font-bold text-sm uppercase tracking-widest">
                 <Plus className="w-4 h-4" /> New order
               </button>
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full premium-table">
-              <thead className="bg-muted/40 border-b border-border">
+          <div className="table-scrollbar sidebar-scroll">
+            <table className="w-full min-w-max premium-table">
+              <thead>
                 <tr>
                   {['Order No.', 'Supplier', 'Category', 'Subcategory', 'Qty', 'Amount', 'Date', 'Status', 'BC', 'BL', ''].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                    <th key={h} className="px-8 py-4 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-card divide-y divide-border">
+              <tbody className="divide-y divide-border/40">
                 {orders.map(order => (
-                  <tr key={order.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-semibold text-foreground text-sm">{order.reference}</div>
-                      {order.department && <div className="text-xs text-muted-foreground mt-0.5">{order.department}</div>}
+                  <tr key={order.id} className="group transition-all duration-300">
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <div className="font-black text-foreground text-[13px] uppercase tracking-tight">{order.reference}</div>
+                      {order.department && <div className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest mt-1">{order.department}</div>}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">{order.supplier}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] font-bold text-foreground/70">{order.supplier}</td>
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
                         {order.category}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
+                    <td className="px-8 py-5 whitespace-nowrap text-[12px] font-bold text-muted-foreground/60 uppercase tracking-tight">
                       {order.subCategory || '—'}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground font-medium text-center">
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] font-black text-foreground tabular-nums text-center">
                       {order.quantity}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground font-medium">
+                    <td className="px-8 py-5 whitespace-nowrap text-[14px] font-black text-foreground tabular-nums tracking-tight">
                       {order.total > 0 ? formatMAD(order.total * (order.quantity || 0)) : '—'}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
+                    <td className="px-8 py-5 whitespace-nowrap text-[12px] font-bold text-muted-foreground/50 tabular-nums">
                       {new Date(order.date).toLocaleDateString('en-GB')}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-8 py-5 whitespace-nowrap">
                       <StatusBadge orderId={order.id} status={order.status} canManage={canManageOrders} onChange={handleStatusChange} />
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-8 py-5 whitespace-nowrap">
                       <FileCell file={order.bcFile} label="BC" canManage={canManageOrders}
                         onUpload={f => handleUploadFile(order.id, 'bcFile', f)}
                         onRemove={() => handleRemoveFile(order.id, 'bcFile')} />
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-8 py-5 whitespace-nowrap">
                       <FileCell file={order.blFile} label="BL" canManage={canManageOrders}
                         onUpload={f => handleUploadFile(order.id, 'blFile', f)}
                         onRemove={() => handleRemoveFile(order.id, 'blFile')} />
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-8 py-5 whitespace-nowrap">
                       {canManageOrders && (
                         <button onClick={() => handleDelete(order.id)} title="Delete"
-                          className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors">
+                          className="p-2 rounded-xl text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}

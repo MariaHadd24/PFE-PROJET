@@ -1522,6 +1522,7 @@ function StatCard({
   icon,
   order,
   variant = 'default',
+  onClick,
 }: {
   title: string;
   value: number | string;
@@ -1529,6 +1530,7 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>;
   order: number;
   variant?: 'default' | 'admin';
+  onClick?: () => void;
 }) {
   const Icon = icon;
   const shouldReduceMotion = useReducedMotion();
@@ -1576,8 +1578,18 @@ function StatCard({
       animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
       transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut', delay: Math.min(order * 0.05, 0.25) }}
       whileHover={shouldReduceMotion ? undefined : { y: -1 }}
-      className={cardClassName}
-      tabIndex={0}
+      className={cardClassName + (onClick ? ' cursor-pointer' : '')}
+      tabIndex={onClick ? 0 : -1}
+      role={onClick ? 'button' : undefined}
+      aria-label={onClick ? `${title} - open related page` : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (!onClick) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       {!isAdmin ? (
         <>
@@ -1627,6 +1639,7 @@ function StatCard({
 export function DashboardPage() {
   const { assets, maintenanceTickets, users, sites, categories, suppliers, departments } = useData();
   const cards = useMemo(() => buildCards(assets), [assets]);
+  const navigate = useNavigate();
 
   const shouldReduceMotion = useReducedMotion();
 
@@ -1642,6 +1655,22 @@ export function DashboardPage() {
     setLockedCardKey((prev) => {
       return prev === key ? null : key;
     });
+  };
+
+  const goToStockInventory = (filter?: {
+    activeCategory?: string;
+    searchTerm?: string;
+    filterStatus?: AssetStatus | '';
+  }) => {
+    navigate('/stock-inventory', { state: { stockInventoryFilter: filter } });
+  };
+
+  const goToAdminTab = (tab: 'users' | 'roles' | 'sites' | 'categories' | 'suppliers' | 'departments') => {
+    navigate(`/admin?tab=${tab}`);
+  };
+
+  const goToMaintenance = () => {
+    navigate('/maintenance');
   };
 
   const totals = useMemo(() => {
@@ -2082,14 +2111,14 @@ export function DashboardPage() {
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard title="Total Assets" value={totals.total} color="var(--chart-blue-10)" icon={Layers} order={0} />
-        <StatCard title="Available" value={totals.available} color="var(--chart-2)" icon={BadgeCheck} order={1} />
-        <StatCard title="Assigned" value={totals.assigned} color="var(--chart-blue-1)" icon={UserRoundCheck} order={2} />
-        <StatCard title="In Repair" value={totals.inRepair} color="var(--chart-4)" icon={Wrench} order={3} />
-        <StatCard title="Retired" value={totals.retired} color="var(--destructive)" icon={ArchiveX} order={4} />
-        <StatCard title={`EOL (>${END_OF_LIFE_YEARS}y)`} value={extraStats.eolByAge} color="var(--chart-1)" icon={AlertTriangle} order={5} />
-        <StatCard title="Maintenance Tickets" value={extraStats.ticketsTotal} color="var(--chart-blue-5)" icon={Wrench} order={6} />
-        <StatCard title="Open Tickets" value={extraStats.ticketsOpen} color="var(--chart-4)" icon={AlertTriangle} order={7} />
+        <StatCard title="Total Assets" value={totals.total} color="var(--chart-blue-10)" icon={Layers} order={0} onClick={() => goToStockInventory()} />
+        <StatCard title="Available" value={totals.available} color="var(--chart-2)" icon={BadgeCheck} order={1} onClick={() => goToStockInventory({ filterStatus: 'Available' })} />
+        <StatCard title="Assigned" value={totals.assigned} color="var(--chart-blue-1)" icon={UserRoundCheck} order={2} onClick={() => goToStockInventory({ filterStatus: 'Assigned' })} />
+        <StatCard title="In Repair" value={totals.inRepair} color="var(--chart-4)" icon={Wrench} order={3} onClick={() => goToStockInventory({ filterStatus: 'InRepair' })} />
+        <StatCard title="Retired" value={totals.retired} color="var(--destructive)" icon={ArchiveX} order={4} onClick={() => goToStockInventory({ filterStatus: 'Retired' })} />
+        <StatCard title={`EOL (>${END_OF_LIFE_YEARS}y)`} value={extraStats.eolByAge} color="var(--chart-1)" icon={AlertTriangle} order={5} onClick={() => goToStockInventory({ activeCategory: 'Obsolete' })} />
+        <StatCard title="Maintenance Tickets" value={extraStats.ticketsTotal} color="var(--chart-blue-5)" icon={Wrench} order={6} onClick={goToMaintenance} />
+        <StatCard title="Open Tickets" value={extraStats.ticketsOpen} color="var(--chart-4)" icon={AlertTriangle} order={7} onClick={goToMaintenance} />
       </div>
 
       <section className="premium-surface mb-8 rounded-3xl p-5">
@@ -2101,12 +2130,12 @@ export function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-6">
-          <StatCard title="Users" value={adminCounts.users} color="var(--chart-blue-10)" icon={UserRoundCheck} order={0} variant="admin" />
-          <StatCard title="Roles" value={adminCounts.roles} color="var(--chart-blue-5)" icon={KeyRound} order={1} variant="admin" />
-          <StatCard title="Sites" value={adminCounts.sites} color="var(--chart-2)" icon={Network} order={2} variant="admin" />
-          <StatCard title="Categories" value={adminCounts.categories} color="var(--primary)" icon={Layers} order={3} variant="admin" />
-          <StatCard title="Suppliers" value={adminCounts.suppliers} color="var(--chart-4)" icon={PhoneCall} order={4} variant="admin" />
-          <StatCard title="Departments" value={adminCounts.departments} color="var(--chart-blue-1)" icon={Server} order={5} variant="admin" />
+          <StatCard title="Users" value={adminCounts.users} color="var(--chart-blue-10)" icon={UserRoundCheck} order={0} variant="admin" onClick={() => goToAdminTab('users')} />
+          <StatCard title="Roles" value={adminCounts.roles} color="var(--chart-blue-5)" icon={KeyRound} order={1} variant="admin" onClick={() => goToAdminTab('roles')} />
+          <StatCard title="Sites" value={adminCounts.sites} color="var(--chart-2)" icon={Network} order={2} variant="admin" onClick={() => goToAdminTab('sites')} />
+          <StatCard title="Categories" value={adminCounts.categories} color="var(--primary)" icon={Layers} order={3} variant="admin" onClick={() => goToAdminTab('categories')} />
+          <StatCard title="Suppliers" value={adminCounts.suppliers} color="var(--chart-4)" icon={PhoneCall} order={4} variant="admin" onClick={() => goToAdminTab('suppliers')} />
+          <StatCard title="Departments" value={adminCounts.departments} color="var(--chart-blue-1)" icon={Server} order={5} variant="admin" onClick={() => goToAdminTab('departments')} />
         </div>
       </section>
 

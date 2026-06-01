@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight } from 'lucide-react';
+import { Plus, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, LayoutDashboard } from 'lucide-react';
 import type { MovementType } from '../types';
 import { AddMovementModal } from '../components/ui/AddMovementModal';
 import { useNotifications } from '../context/NotificationContext';
@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { canPerformAction } from '../lib/rbac';
+import { motion } from 'motion/react';
+import { cn } from '../components/ui/utils';
 
 const movementIcons: Record<MovementType, React.ReactNode> = {
   Entry: <ArrowDownCircle className="w-5 h-5 text-green-600 dark:text-emerald-300" />,
@@ -151,69 +153,73 @@ export function MovementsPage() {
         </div>
       </div>
 
-      {/* Movements History */}
-      <div className="premium-surface">
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground">Movement History</h2>
-          <p className="text-sm text-muted-foreground mt-1">All movements are read-only (not editable)</p>
+      {/* Table Premium */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="panel-frame overflow-hidden bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl"
+      >
+        <div className="px-8 py-6 border-b border-border/50 bg-gradient-to-r from-muted/30 to-transparent flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <LayoutDashboard className="w-4 h-4" />
+            </div>
+            <h2 className="text-lg font-black tracking-tight text-foreground uppercase">Movement Registry</h2>
+          </div>
+          <div className="px-3 py-1 rounded-full bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            {movementsList.length} Total Records
+          </div>
         </div>
-        
-        <div className="overflow-x-auto">
+
+        <div className="overflow-x-auto sidebar-scroll">
           <table className="w-full premium-table">
-            <thead className="bg-muted/40 border-b border-border">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Asset
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Source Site
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Destination Site
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Comment
-                </th>
+            <thead>
+              <tr className="bg-muted/20">
+                {['Date', 'Type', 'Asset', 'Source Site', 'Destination Site', 'User', 'Comment'].map((h) => (
+                  <th key={h} className="px-8 py-4 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] border-b border-border/50">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="divide-y divide-border/40">
               {movementsList.map((movement) => {
                 const asset = assets.find(a => a.id === movement.assetId);
                 return (
-                  <tr key={movement.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                      {new Date(movement.date).toLocaleDateString('en-US')}
+                  <tr key={movement.id} className="group hover:bg-primary/5 transition-all duration-300">
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-[11px] font-bold text-foreground/60 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        {new Date(movement.date).toLocaleDateString('en-GB')}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-8 py-5 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         {movementIcons[movement.type]}
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${movementColors[movement.type]}`}>
+                        <span className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm transition-transform group-hover:scale-105",
+                          movementColors[movement.type]
+                        )}>
                           {movement.type}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
-                      {asset?.assetTag || 'N/A'}
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-[13px] font-bold text-foreground leading-none">{asset?.assetTag || 'N/A'}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] font-bold text-foreground/70">
                       {movement.sourceSite || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    <td className="px-8 py-5 whitespace-nowrap text-[13px] font-bold text-foreground/70">
                       {movement.destinationSite || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {movement.user}
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-[13px] font-medium text-muted-foreground">
+                        {movement.user}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                    <td className="px-8 py-5 text-[13px] text-muted-foreground font-medium max-w-xs truncate">
                       {movement.comment}
                     </td>
                   </tr>
@@ -222,7 +228,7 @@ export function MovementsPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Modal for new movement */}
       <AddMovementModal

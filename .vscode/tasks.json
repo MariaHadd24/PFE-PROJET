@@ -49,6 +49,18 @@
 			"group": "build"
 		},
 		{
+			"label": "Run Backend (SQL Server)",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"dev:backend:sqlserver"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
 			"label": "Run Frontend",
 			"type": "shell",
 			"command": "npm.cmd",
@@ -113,6 +125,19 @@
 				"Run Fullstack"
 			],
 			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Restore Old Application Tables",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"scripts\\restore-old-tables.ps1"
+			],
 			"group": "build"
 		}
 	]

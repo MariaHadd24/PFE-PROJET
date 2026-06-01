@@ -19,12 +19,28 @@ import {
   AlertDialogTrigger,
 } from '../components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { motion, useReducedMotion } from 'motion/react';
+import { cn } from '../components/ui/utils';
 
 const statusStyles: Record<AssetStatus, string> = {
-  Available: 'bg-green-100 text-green-700 dark:bg-emerald-500/15 dark:text-emerald-300',
-  Assigned: 'bg-blue-100 text-blue-700',
-  InRepair: 'bg-orange-100 text-orange-700',
-  Retired: 'bg-red-100 text-red-700 dark:bg-red-900/25 dark:text-red-200'
+  Available: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  Assigned: 'bg-primary/10 text-primary border-primary/20',
+  InRepair: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  Retired: 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+};
+
+const pageContainerVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.18, ease: 'easeOut', when: 'beforeChildren', staggerChildren: 0.05 },
+  },
+};
+
+const pageItemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: 'easeOut' } },
 };
 
 const SCANNER_TYPES = ['Cradle', 'Pistolet', 'Barcode Scanner'] as const;
@@ -320,14 +336,19 @@ export function AssetDetailPage() {
   }, [form.category]);
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={shouldReduceMotion ? undefined : pageContainerVariants}
+      initial={shouldReduceMotion ? undefined : 'hidden'}
+      animate={shouldReduceMotion ? undefined : 'show'}
+    >
       {/* Header */}
-      <div className="page-hero">
+      <motion.div className="page-hero" variants={shouldReduceMotion ? undefined : pageItemVariants}>
         <div className="page-hero__topline" aria-hidden />
         <div className="page-hero__layout">
           <div className="min-w-0">
-            <Link to="/stock-inventory" className="inline-flex items-center gap-2 text-primary hover:opacity-90 mb-4">
-              <ArrowLeft className="w-4 h-4" />
+            <Link to="/stock-inventory" className="chip-industrial inline-flex items-center gap-2 text-primary hover:text-cyan-600 mb-6 px-0 uppercase tracking-widest text-[10px] font-black transition-colors">
+              <ArrowLeft className="w-3.5 h-3.5" />
               Back to Assets IT
             </Link>
 
@@ -339,6 +360,12 @@ export function AssetDetailPage() {
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="page-hero__badge">Asset</span>
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all",
+                    statusStyles[asset.status]
+                  )}>
+                    {asset.status}
+                  </span>
                 </div>
 
                 <h1 className="page-hero__title">
@@ -356,39 +383,53 @@ export function AssetDetailPage() {
             </div>
           </div>
 
-          <div className="page-hero__actions">
-            <span className={`px-4 py-2 rounded-lg font-semibold ${statusStyles[asset.status]}`}>
-              {asset.status}
-            </span>
+          <div className="page-hero__actions flex items-center gap-3">
             {activeTab === 'info' && (
               <>
                 {!editMode ? (
-                  <Button variant="outline" onClick={() => setEditMode(true)}>
-                    Edit
-                  </Button>
+                  <motion.button
+                    whileHover={shouldReduceMotion ? undefined : { scale: 1.05, y: -2 }}
+                    whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
+                    onClick={() => setEditMode(true)}
+                    className="chip-industrial flex items-center gap-2 bg-muted/50 border border-border text-foreground px-6 py-3 rounded-xl shadow-sm transition-all font-bold text-xs uppercase tracking-widest"
+                  >
+                    Edit Asset
+                  </motion.button>
                 ) : (
                   <>
-                    <Button variant="outline" onClick={() => setEditMode(false)}>
+                    <button
+                      onClick={() => setEditMode(false)}
+                      className="px-6 py-3 rounded-xl bg-muted/30 border border-border text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:bg-muted transition-colors"
+                    >
                       Cancel
-                    </Button>
-                    <Button onClick={onSave}>Save</Button>
+                    </button>
+                    <motion.button
+                      whileHover={shouldReduceMotion ? undefined : { scale: 1.05, y: -2 }}
+                      whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
+                      onClick={onSave}
+                      className="chip-industrial flex items-center gap-2 bg-gradient-to-br from-primary to-cyan-600 text-white px-8 py-3 rounded-xl shadow-lg shadow-primary/20 transition-all font-bold text-xs uppercase tracking-widest"
+                    >
+                      Save Changes
+                    </motion.button>
                   </>
                 )}
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive">Delete</Button>
+                    <button className="p-3 rounded-xl bg-rose-500/10 text-rose-600 border border-rose-500/20 hover:bg-rose-500/20 transition-colors">
+                      <DollarSign className="w-5 h-5 rotate-45" /> {/* Use as a pseudo-delete icon if needed, or stick to Button */}
+                    </button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="rounded-3xl">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete asset?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete {asset.assetTag}.
+                      <AlertDialogTitle className="text-xl font-black uppercase tracking-tight">Delete asset?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-sm font-medium">
+                        This will permanently delete <span className="text-foreground font-bold">{asset.assetTag}</span>. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
+                    <AlertDialogFooter className="gap-3">
+                      <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px]">Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onDelete} className="rounded-xl bg-rose-600 font-bold uppercase tracking-widest text-[10px] hover:bg-rose-700">Delete Permanently</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -396,433 +437,533 @@ export function AssetDetailPage() {
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Tabs */}
-      <div className="border-b border-border">
-        <nav className="-mb-px flex space-x-8">
-          {tabs.map((tab) => (
+      <motion.div
+        className="premium-surface rounded-2xl p-1.5 flex flex-wrap gap-1"
+        variants={shouldReduceMotion ? undefined : pageItemVariants}
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`
-                py-4 px-1 border-b-2 font-medium text-sm transition-colors
-                ${activeTab === tab.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                }
-              `}
+              className={cn(
+                "relative px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300",
+                isActive 
+                  ? "text-primary shadow-sm" 
+                  : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
+              )}
             >
-              {tab.label}
+              {isActive && (
+                <motion.div
+                  layoutId="activeAssetTab"
+                  className="absolute inset-0 bg-primary/10 rounded-xl border border-primary/20"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative z-10">{tab.label}</span>
             </button>
-          ))}
-        </nav>
-      </div>
+          );
+        })}
+      </motion.div>
 
       {/* Tab Content */}
-      <div className="premium-surface p-6">
-        {activeTab === 'info' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Identification</h3>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-600">Asset Tag</label>
-                {editMode ? (
-                  <Input value={form.assetTag} onChange={(e) => setForm((p) => ({ ...p, assetTag: e.target.value }))} />
-                ) : (
-                  <p className="text-gray-900 mt-1">{asset.assetTag}</p>
-                )}
-              </div>
+      <motion.div
+        className="panel-frame bg-card/30 backdrop-blur-md rounded-3xl border border-border/60 shadow-xl overflow-hidden"
+        variants={shouldReduceMotion ? undefined : pageItemVariants}
+      >
+        <div className="p-8">
+          {activeTab === 'info' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="space-y-8">
+                <div className="flex items-center gap-3 pb-4 border-b border-border/50">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-foreground/80">Identification</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Asset Tag</label>
+                    {editMode ? (
+                      <Input value={form.assetTag} className="rounded-xl border-border/80 focus:ring-primary/10" onChange={(e) => setForm((p) => ({ ...p, assetTag: e.target.value }))} />
+                    ) : (
+                      <p className="text-sm font-bold text-foreground tabular-nums">{asset.assetTag}</p>
+                    )}
+                  </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-600">Serial Number</label>
-                {editMode ? (
-                  <Input
-                    value={form.serialNumber}
-                    onChange={(e) => setForm((p) => ({ ...p, serialNumber: e.target.value }))}
-                  />
-                ) : (
-                  <p className="text-gray-900 mt-1">{asset.serialNumber}</p>
-                )}
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Serial Number</label>
+                    {editMode ? (
+                      <Input
+                        value={form.serialNumber}
+                        className="rounded-xl border-border/80 focus:ring-primary/10"
+                        onChange={(e) => setForm((p) => ({ ...p, serialNumber: e.target.value }))}
+                      />
+                    ) : (
+                      <p className="text-sm font-bold text-foreground tabular-nums">{asset.serialNumber}</p>
+                    )}
+                  </div>
 
-              {asset.macAddress && (
-                <div>
-                  <label className="text-sm font-medium text-gray-600">MAC Address</label>
-                  {editMode ? (
-                    <Input
-                      value={form.macAddress}
-                      onChange={(e) => setForm((p) => ({ ...p, macAddress: e.target.value }))}
-                    />
-                  ) : (
-                    <p className="text-gray-900 mt-1">{asset.macAddress}</p>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">MAC Address</label>
+                    {editMode ? (
+                      <Input
+                        value={form.macAddress}
+                        className="rounded-xl border-border/80 focus:ring-primary/10"
+                        onChange={(e) => setForm((p) => ({ ...p, macAddress: e.target.value }))}
+                      />
+                    ) : (
+                      <p className="text-sm font-bold text-foreground tabular-nums">{asset.macAddress || '-'}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Model</label>
+                    {editMode ? (
+                      <Input value={form.model} className="rounded-xl border-border/80 focus:ring-primary/10" onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))} />
+                    ) : (
+                      <p className="text-sm font-bold text-foreground">{asset.model}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Category</label>
+                    {editMode ? (
+                      <Select
+                        value={form.category}
+                        onValueChange={(v) =>
+                          setForm((p) => ({
+                            ...p,
+                            category: v,
+                            type: '',
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="rounded-xl border-border/80">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl shadow-xl border-border/60">
+                          {categoryOptions.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex">
+                        <span className="px-2 py-0.5 rounded bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-primary">
+                          {asset.category}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {categoryNeedsType(form.category) && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Type</label>
+                      {editMode ? (
+                        <Select value={String(form.type ?? '')} onValueChange={(v) => setForm((p) => ({ ...p, type: v }))}>
+                          <SelectTrigger className="rounded-xl border-border/80">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl shadow-xl border-border/60">
+                            {(isKabaCategory(form.category)
+                              ? KABA_TYPES
+                              : isScannerCategory(form.category)
+                                ? SCANNER_TYPES
+                                : CISCO_TYPES
+                            ).map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <p className="text-sm font-bold text-foreground">{String((asset as any).type ?? '-')}</p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
 
-              {editMode && !asset.macAddress && (
-                <div>
-                  <label className="text-sm font-medium text-gray-600">MAC Address</label>
-                  <Input value={form.macAddress} onChange={(e) => setForm((p) => ({ ...p, macAddress: e.target.value }))} />
-                </div>
-              )}
-
-              <div>
-                <label className="text-sm font-medium text-gray-600">Model</label>
-                {editMode ? (
-                  <Input value={form.model} onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))} />
-                ) : (
-                  <p className="text-gray-900 mt-1">{asset.model}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600">Category</label>
-                {editMode ? (
-                  <Select
-                    value={form.category}
-                    onValueChange={(v) =>
-                      setForm((p) => ({
-                        ...p,
-                        category: v,
-                        type: '',
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoryOptions.map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
+                {(isWorkstationCategory(form.category) || isNotebookCategory(form.category)) && (
+                  <div className="pt-6 border-t border-border/50">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-600">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-sm font-black uppercase tracking-[0.2em] text-foreground/80">Device profile</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                      {deviceProfileKeys.map((key) => (
+                        <div key={key} className="space-y-1.5">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">{key.replace(/_/g, ' ')}</label>
+                          {editMode ? (
+                            <Input
+                              type={key.endsWith('_date') ? 'date' : 'text'}
+                              className="rounded-xl border-border/80 focus:ring-primary/10 h-9 text-xs"
+                              value={String((form.deviceProfile as any)?.[key] ?? '')}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  deviceProfile: {
+                                    kind: isWorkstationCategory(p.category) ? 'Workstation' : 'Notebook',
+                                    ...(p.deviceProfile as any),
+                                    [key]: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          ) : (
+                            <p className="text-xs font-bold text-foreground/70 tabular-nums">{String(((asset as any).deviceProfile as any)?.[key] ?? '-')}</p>
+                          )}
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-gray-900 mt-1">{asset.category}</p>
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {categoryNeedsType(form.category) && (
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Type</label>
-                  {editMode ? (
-                    <Select value={String(form.type ?? '')} onValueChange={(v) => setForm((p) => ({ ...p, type: v }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(isKabaCategory(form.category)
-                          ? KABA_TYPES
-                          : isScannerCategory(form.category)
-                            ? SCANNER_TYPES
-                            : CISCO_TYPES
-                        ).map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {t}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-gray-900 mt-1">{String((asset as any).type ?? '-')}</p>
-                  )}
+              <div className="space-y-8">
+                <div className="flex items-center gap-3 pb-4 border-b border-border/50">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-foreground/80">Details & Finance</h3>
                 </div>
-              )}
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Supplier</label>
+                    {editMode ? (
+                      <Select value={form.supplier} onValueChange={(v) => setForm((p) => ({ ...p, supplier: v }))}>
+                        <SelectTrigger className="rounded-xl border-border/80">
+                          <SelectValue placeholder="Select supplier" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl shadow-xl border-border/60">
+                          {supplierOptions.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm font-bold text-foreground">{asset.supplier}</p>
+                    )}
+                  </div>
 
-              {(isWorkstationCategory(form.category) || isNotebookCategory(form.category)) && (
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Device profile</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {deviceProfileKeys.map((key) => (
-                      <div key={key}>
-                        <label className="text-sm font-medium text-gray-600">{key}</label>
-                        {editMode ? (
-                          <Input
-                            type={key.endsWith('_date') ? 'date' : 'text'}
-                            value={String((form.deviceProfile as any)?.[key] ?? '')}
-                            onChange={(e) =>
-                              setForm((p) => ({
-                                ...p,
-                                deviceProfile: {
-                                  kind: isWorkstationCategory(p.category) ? 'Workstation' : 'Notebook',
-                                  ...(p.deviceProfile as any),
-                                  [key]: e.target.value,
-                                },
-                              }))
-                            }
-                          />
-                        ) : (
-                          <p className="text-gray-900 mt-1">{String(((asset as any).deviceProfile as any)?.[key] ?? '-')}</p>
-                        )}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Site</label>
+                    {editMode ? (
+                      <Select value={form.site} onValueChange={(v) => setForm((p) => ({ ...p, site: v }))}>
+                        <SelectTrigger className="rounded-xl border-border/80">
+                          <SelectValue placeholder="Select site" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl shadow-xl border-border/60">
+                          {siteOptions.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm font-bold text-foreground">{asset.site}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Acquisition date</label>
+                    {editMode ? (
+                      <Input
+                        type="date"
+                        className="rounded-xl border-border/80 focus:ring-primary/10"
+                        value={form.acquisitionDate}
+                        onChange={(e) => setForm((p) => ({ ...p, acquisitionDate: e.target.value }))}
+                      />
+                    ) : (
+                      <p className="text-sm font-bold text-foreground tabular-nums">{new Date(asset.acquisitionDate).toLocaleDateString('en-US')}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Warranty end date</label>
+                    {editMode ? (
+                      <Input
+                        type="date"
+                        className="rounded-xl border-border/80 focus:ring-primary/10"
+                        value={form.warrantyEndDate}
+                        onChange={(e) => setForm((p) => ({ ...p, warrantyEndDate: e.target.value }))}
+                      />
+                    ) : (
+                      <p className="text-sm font-bold text-foreground tabular-nums">{new Date(asset.warrantyEndDate).toLocaleDateString('en-US')}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Valeur</label>
+                    {editMode ? (
+                      <div className="relative group">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 font-black text-[10px]">MAD</div>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          className="pl-12 rounded-xl border-border/80 focus:ring-primary/10"
+                          value={form.value}
+                          onChange={(e) => setForm((p) => ({ ...p, value: e.target.value }))}
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-lg font-black text-foreground tabular-nums tracking-tight">{formatMAD(asset.value)}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-border/50">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-foreground/80">Asset Attributes</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                    {(
+                      [
+                        { label: 'Description', value: asset.description },
+                        { label: 'BCI', value: asset.bci },
+                        { label: 'BCE', value: asset.bce },
+                        { label: 'BCI Check', value: asset.bciCheck },
+                        { label: 'VNC', value: asset.vnc },
+                        { label: 'Immo Number', value: asset.immoNumber },
+                        { label: 'Pilote', value: asset.pilote },
+                        { label: 'Pilote 1', value: asset.pilote1 },
+                        { label: 'Stock IN', value: asset.stockIn },
+                        { label: 'Date IN', value: asset.dateIn },
+                        { label: 'Stock OUT', value: asset.stockOut },
+                        { label: 'Date OUT', value: asset.dateOut },
+                        { label: 'Barcode', value: asset.barcode },
+                        { label: 'QR Code', value: asset.qrCode },
+                        { label: 'Store', value: asset.storeLocation },
+                        { label: 'Cabinet', value: asset.cabinet },
+                        { label: 'Rack', value: asset.rack },
+                        { label: 'Level', value: asset.level },
+                        { label: 'Comment', value: asset.comment },
+                      ] as Array<{ label: string; value: any }>
+                    ).map((f) => (
+                      <div key={f.label} className="space-y-1.5">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">{f.label}</label>
+                        <p className="text-xs font-bold text-foreground/70 truncate">{String(f.value ?? '').trim() || '-'}</p>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
+          )}
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Details</h3>
+          {activeTab === 'movements' && (
+            <div className="max-w-3xl mx-auto py-4">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+                  <Package className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-foreground">Movement History</h3>
+              </div>
               
-              <div>
-                <label className="text-sm font-medium text-gray-600">Supplier</label>
-                {editMode ? (
-                  <Select value={form.supplier} onValueChange={(v) => setForm((p) => ({ ...p, supplier: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {supplierOptions.map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-gray-900 mt-1">{asset.supplier}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600">Site</label>
-                {editMode ? (
-                  <Select value={form.site} onValueChange={(v) => setForm((p) => ({ ...p, site: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select site" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {siteOptions.map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-gray-900 mt-1">{asset.site}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600">Acquisition date</label>
-                {editMode ? (
-                  <Input
-                    type="date"
-                    value={form.acquisitionDate}
-                    onChange={(e) => setForm((p) => ({ ...p, acquisitionDate: e.target.value }))}
-                  />
-                ) : (
-                  <p className="text-gray-900 mt-1">{new Date(asset.acquisitionDate).toLocaleDateString('en-US')}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600">Warranty end date</label>
-                {editMode ? (
-                  <Input
-                    type="date"
-                    value={form.warrantyEndDate}
-                    onChange={(e) => setForm((p) => ({ ...p, warrantyEndDate: e.target.value }))}
-                  />
-                ) : (
-                  <p className="text-gray-900 mt-1">{new Date(asset.warrantyEndDate).toLocaleDateString('en-US')}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600">Status</label>
-                {editMode ? (
-                  <Select value={form.status} onValueChange={(v) => setForm((p) => ({ ...p, status: v as AssetStatus }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(['Available', 'Assigned', 'InRepair', 'Retired'] as AssetStatus[]).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-gray-900 mt-1">{asset.status}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600">Valeur</label>
-                {editMode ? (
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    value={form.value}
-                    onChange={(e) => setForm((p) => ({ ...p, value: e.target.value }))}
-                  />
-                ) : (
-                  <p className="text-gray-900 mt-1 text-xl font-semibold">{formatMAD(asset.value)}</p>
-                )}
-              </div>
-
-              <div className="pt-4 mt-2 border-t border-gray-200">
-                <h4 className="text-base font-bold text-gray-900 mb-3">Assets IT</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(
-                    [
-                      { label: 'Description', value: asset.description },
-                      { label: 'BCI', value: asset.bci },
-                      { label: 'BCE', value: asset.bce },
-                      { label: 'BCI Check', value: asset.bciCheck },
-                      { label: 'VNC', value: asset.vnc },
-                      { label: 'Immo Number', value: asset.immoNumber },
-                      { label: 'Pilote', value: asset.pilote },
-                      { label: 'Pilote 1', value: asset.pilote1 },
-                      { label: 'Stock IN', value: asset.stockIn },
-                      { label: 'Date IN', value: asset.dateIn },
-                      { label: 'Stock OUT', value: asset.stockOut },
-                      { label: 'Date OUT', value: asset.dateOut },
-                      { label: 'Barcode', value: asset.barcode },
-                      { label: 'QR Code', value: asset.qrCode },
-                      { label: 'Store', value: asset.storeLocation },
-                      { label: 'Cabinet', value: asset.cabinet },
-                      { label: 'Rack', value: asset.rack },
-                      { label: 'Level', value: asset.level },
-                      { label: 'Comment', value: asset.comment },
-                    ] as Array<{ label: string; value: any }>
-                  ).map((f) => (
-                    <div key={f.label}>
-                      <label className="text-sm font-medium text-gray-600">{f.label}</label>
-                      <p className="text-gray-900 mt-1">{String(f.value ?? '').trim() || '-'}</p>
-                    </div>
+              {assetMovements.length === 0 ? (
+                <div className="text-center py-12 rounded-3xl border border-dashed border-border/60 bg-muted/20">
+                  <p className="text-sm font-bold text-muted-foreground/60 uppercase tracking-widest">No movements recorded</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {assetMovements.map((movement) => (
+                    <motion.div 
+                      key={movement.id} 
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="group relative pl-8 pb-8 last:pb-0"
+                    >
+                      <div className="absolute left-0 top-1 bottom-0 w-px bg-border group-last:bg-transparent">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.4)]" />
+                      </div>
+                      
+                      <div className="premium-surface p-5 rounded-2xl border-border/40 hover:border-primary/30 transition-all duration-300">
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-black uppercase tracking-widest text-foreground">{movement.type}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-[9px] font-black tabular-nums text-muted-foreground">
+                              {new Date(movement.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">By {movement.user}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm font-bold text-foreground/80 mb-3">
+                          {movement.sourceSite && <span className="text-primary">{movement.sourceSite}</span>}
+                          {movement.sourceSite && movement.destinationSite && <ArrowLeft className="w-3 h-3 rotate-180 text-muted-foreground/40" />}
+                          {movement.destinationSite && <span className="text-cyan-600">{movement.destinationSite}</span>}
+                        </div>
+                        
+                        {movement.comment && (
+                          <p className="text-xs font-medium text-muted-foreground/70 italic line-clamp-2">
+                            "{movement.comment}"
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
                   ))}
                 </div>
-              </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'movements' && (
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Movement History</h3>
-            {assetMovements.length === 0 ? (
-              <p className="text-gray-500">No movements recorded</p>
-            ) : (
-              <div className="space-y-4">
-                {assetMovements.map((movement) => (
-                  <div key={movement.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <Package className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-gray-900">{movement.type}</span>
-                        <span className="text-sm text-gray-500">
-                          {new Date(movement.date).toLocaleDateString('en-US')}
+          {activeTab === 'assignments' && (
+            <div className="max-w-3xl mx-auto py-4">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
+                  <User className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-foreground">Assignment History</h3>
+              </div>
+
+              {assetAssignments.length === 0 ? (
+                <div className="text-center py-12 rounded-3xl border border-dashed border-border/60 bg-muted/20">
+                  <p className="text-sm font-bold text-muted-foreground/60 uppercase tracking-widest">No assignments recorded</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {assetAssignments.map((assignment) => (
+                    <motion.div 
+                      key={assignment.id} 
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="group relative pl-8 pb-8 last:pb-0"
+                    >
+                      <div className="absolute left-0 top-1 bottom-0 w-px bg-border group-last:bg-transparent">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.4)]" />
+                      </div>
+                      
+                      <div className="premium-surface p-6 rounded-2xl border-border/40 hover:border-emerald-500/30 transition-all duration-300">
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                          <div className="flex items-center gap-4">
+                            <h4 className="text-sm font-black uppercase tracking-tight text-foreground">{assignment.userName}</h4>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border",
+                              assignment.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                              assignment.status === 'Pending' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                              'bg-muted/50 text-muted-foreground border-border'
+                            )}>
+                              {assignment.status}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-black tabular-nums text-muted-foreground/40">
+                            {new Date(assignment.startDate).toLocaleDateString('en-US')}
+                            {assignment.returnDate && ` — ${new Date(assignment.returnDate).toLocaleDateString('en-US')}`}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <p className="text-xs font-bold text-foreground/60 uppercase tracking-widest">
+                            {assignment.department} <span className="mx-1 text-muted-foreground/30">/</span> {assignment.site}
+                          </p>
+                          
+                          {formatAssignmentDeviceInfo(assignment) && (
+                            <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                              <p className="text-[10px] leading-relaxed font-bold text-muted-foreground/70 uppercase tracking-wider">
+                                {formatAssignmentDeviceInfo(assignment)}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {assignment.approvedBy && (
+                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
+                              Approved by <span className="text-foreground/50">{assignment.approvedBy}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'maintenance' && (
+            <div className="max-w-4xl mx-auto py-4">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-foreground">Maintenance Tickets</h3>
+              </div>
+
+              {assetTickets.length === 0 ? (
+                <div className="text-center py-12 rounded-3xl border border-dashed border-border/60 bg-muted/20">
+                  <p className="text-sm font-bold text-muted-foreground/60 uppercase tracking-widest">No maintenance history</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {assetTickets.map((ticket) => (
+                    <motion.div 
+                      key={ticket.id} 
+                      className="premium-surface p-6 rounded-3xl border-border/60 group hover:border-amber-500/30 transition-all duration-300"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[10px] font-black tabular-nums text-muted-foreground group-hover:text-amber-600 transition-colors uppercase tracking-[0.2em]">{ticket.id}</span>
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                          ticket.status === 'Open' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                          ticket.status === 'InProgress' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
+                          'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                        )}>
+                          {ticket.status}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">
-                        {movement.sourceSite && `From: ${movement.sourceSite}`}
-                        {movement.sourceSite && movement.destinationSite && ' → '}
-                        {movement.destinationSite && `To: ${movement.destinationSite}`}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">{movement.comment}</p>
-                      <p className="text-xs text-gray-400 mt-1">By: {movement.user}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'assignments' && (
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Assignment History</h3>
-            {assetAssignments.length === 0 ? (
-              <p className="text-gray-500">No assignments recorded</p>
-            ) : (
-              <div className="space-y-4">
-                {assetAssignments.map((assignment) => (
-                  <div key={assignment.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                      <User className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-gray-900">{assignment.userName}</span>
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          assignment.status === 'Active'
-                            ? 'bg-green-100 text-green-700'
-                            : assignment.status === 'Pending'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {assignment.status}
-                        </span>
+                      <p className="text-sm font-bold text-foreground mb-4 line-clamp-2">{ticket.description}</p>
+                      
+                      {ticket.actions && (
+                        <div className="mb-4 text-xs font-medium text-muted-foreground/80 bg-muted/30 p-3 rounded-xl border border-border/40">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 block mb-1">Actions Taken</span>
+                          {ticket.actions}
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-2 gap-y-3 pt-4 border-t border-border/50">
+                        <div>
+                          <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Provider</label>
+                          <span className="text-xs font-bold text-foreground/70">{ticket.provider}</span>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Cost</label>
+                          <span className="text-xs font-black text-amber-600 tabular-nums">{formatMAD(ticket.cost)}</span>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Opened</label>
+                          <span className="text-[10px] font-bold text-foreground/50 tabular-nums">{new Date(ticket.openDate).toLocaleDateString()}</span>
+                        </div>
+                        {ticket.closeDate && (
+                          <div>
+                            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Closed</label>
+                            <span className="text-[10px] font-bold text-foreground/50 tabular-nums">{new Date(ticket.closeDate).toLocaleDateString()}</span>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm text-gray-600">{assignment.department} - {assignment.site}</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Start: {new Date(assignment.startDate).toLocaleDateString('en-US')}
-                        {assignment.returnDate && ` - Return: ${new Date(assignment.returnDate).toLocaleDateString('en-US')}`}
-                      </p>
-                      {formatAssignmentDeviceInfo(assignment) && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatAssignmentDeviceInfo(assignment)}
-                        </p>
-                      )}
-                      {assignment.approvedBy && (
-                        <p className="text-xs text-gray-400 mt-1">Approved by: {assignment.approvedBy}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'maintenance' && (
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Maintenance Tickets</h3>
-            {assetTickets.length === 0 ? (
-              <p className="text-gray-500">No maintenance tickets</p>
-            ) : (
-              <div className="space-y-4">
-                {assetTickets.map((ticket) => (
-                  <div key={ticket.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-semibold text-gray-900">{ticket.id}</span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        ticket.status === 'Open' ? 'bg-orange-100 text-orange-700' :
-                        ticket.status === 'InProgress' ? 'bg-blue-100 text-blue-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {ticket.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 mb-2">{ticket.description}</p>
-                    {ticket.actions && (
-                      <p className="text-sm text-gray-600 mb-2">Actions: {ticket.actions}</p>
-                    )}
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>Provider: {ticket.provider}</span>
-                      <span>Cost: {formatMAD(ticket.cost, { decimals: 2 })}</span>
-                      <span>Opened: {new Date(ticket.openDate).toLocaleDateString('en-US')}</span>
-                      {ticket.closeDate && (
-                        <span>Closed: {new Date(ticket.closeDate).toLocaleDateString('en-US')}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

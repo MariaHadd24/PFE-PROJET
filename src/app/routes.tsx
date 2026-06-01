@@ -10,6 +10,7 @@ import { OrdersPage } from './pages/OrdersPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { AdminPage } from './pages/AdminPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
+import { SessionsPage } from './pages/SessionsPage';
 import { VendorPortalPage } from './pages/VendorPortalPage';
 import { ReportingPage } from './pages/ReportingPage';
 import { StockInventoryPage } from './pages/StockInventoryPage';
@@ -122,6 +123,18 @@ export const router = createBrowserRouter([
         element: (
           <RequireRole roles={['Admin']}>
             <AuditLogsPage />
+          </RequireRole>
+        )
+      },
+      {
+        path: 'accounts',
+        element: <Navigate to="/sessions" replace />
+      },
+      {
+        path: 'sessions',
+        element: (
+          <RequireRole roles={['Admin']}>
+            <SessionsPage />
           </RequireRole>
         )
       },

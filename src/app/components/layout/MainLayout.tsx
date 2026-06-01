@@ -55,19 +55,20 @@ export function MainLayout() {
 
   return (
     <div
-      className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-[#0F172A] dark:via-[#0F172A] dark:to-[#0F172A] transition-colors duration-300"
+      className="blueprint-canvas min-h-screen relative overflow-hidden transition-colors duration-300"
       style={{ ['--sidebar-w' as any]: sidebarOpen ? '16rem' : '0rem' }}
     >
       {/* Ambient background (purely decorative) */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute top-48 -left-24 h-80 w-80 rounded-full bg-purple-500/10 blur-3xl" />
-        <div className="absolute bottom-24 right-32 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="absolute -top-36 right-[8%] h-[28rem] w-[28rem] rounded-full border border-primary/18 bg-primary/8 blur-3xl" />
+        <div className="absolute top-[26%] -left-28 h-[22rem] w-[22rem] rounded-full border border-amber-500/16 bg-amber-500/8 blur-3xl" />
+        <div className="absolute bottom-[8%] right-[16%] h-48 w-[34rem] -rotate-6 rounded-[999px] border border-slate-500/18 bg-slate-500/8 blur-2xl dark:border-slate-300/12 dark:bg-slate-300/6" />
+        <div className="absolute top-[14%] left-[28%] h-44 w-44 rotate-45 rounded-3xl border border-white/16 bg-white/6 blur-2xl dark:border-white/10 dark:bg-white/5" />
       </div>
       <Navbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
       <Sidebar isOpen={sidebarOpen} />
       <main
-        className="mt-20 p-8 transition-[padding] duration-300"
+        className="mt-20 p-4 sm:p-6 lg:p-8 transition-[padding] duration-300"
         style={{ paddingLeft: 'calc(var(--sidebar-w, 0rem) + 2rem)' }}
       >
         <AnimatePresence initial={false} mode="wait">
